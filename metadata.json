@@ -1,0 +1,6 @@
+{
+  "name": "AI BOQ & Tender Estimation Engineer",
+  "description": "Professional quantity takeoff, Bar Bending Schedule (BBS), structural estimation, drawing traceability, and tender BOQ engineering software.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
