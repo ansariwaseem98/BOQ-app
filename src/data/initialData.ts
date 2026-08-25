@@ -1099,7 +1099,7 @@ export function getInitialElements(): DetectedElement[] {
         lengthM: 48.0,
         count: 2,
         gauge: '22G',
-      }).sheetMetalAreaM2,
+      }),
       confidence: 0.94,
       status: 'verified',
       boundingBox: { x: 25, y: 30, width: 50, height: 8, label: 'HVAC GI Duct (800x400)' },
@@ -1933,4 +1933,5 @@ export const SAMPLE_TEST_BBS_RECORDS = INITIAL_BBS_RECORDS;
 export const SAMPLE_TEST_OPEN_ITEMS = INITIAL_OPEN_ITEMS;
 export const SAMPLE_TEST_CONFLICTS = INITIAL_CONFLICTS;
 export const SAMPLE_TEST_REVISIONS = INITIAL_REVISIONS;
+export const INITIAL_PROJECT = SAMPLE_TEST_PROJECT_DATA;
 

@@ -58,11 +58,15 @@ interface DrawingManagerProps {
   activeProject: ProjectRecord | null;
   onNavigateToDashboard?: () => void;
   onNavigateToAllProjects?: () => void;
+  onOpenAnalysisWorkspace?: (docId?: string) => void;
   // Legacy / integration props for backward compatibility
   drawings?: DrawingRecord[];
   activeDrawingId?: string | null;
   onSelectDrawing?: (id: string) => void;
   onSelectDrawingForViewer?: (drawing: DrawingRecord) => void;
+  onAddDrawing?: (drawing: DrawingRecord) => void;
+  onDeleteDrawing?: (id: string) => void;
+  onOpenAiScan?: () => void;
 }
 
 type SortField = 'drawingNumber' | 'title' | 'revision' | 'drawingDate' | 'uploadDate' | 'discipline' | 'status';
@@ -72,6 +76,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
   activeProject,
   onNavigateToDashboard,
   onNavigateToAllProjects,
+  onOpenAnalysisWorkspace,
   onSelectDrawing,
 }) => {
   const projectId = activeProject?.id || '';
@@ -1312,15 +1317,25 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                     )}
                   </div>
 
-                  {/* Open Full Screen Button */}
-                  <div className="p-3 bg-slate-950 border-t border-slate-800 shrink-0">
+                  {/* Open Full Screen & Analyze Buttons */}
+                  <div className="p-3 bg-slate-950 border-t border-slate-800 shrink-0 flex items-center gap-2">
                     <button
                       onClick={() => setIsFullScreenOpen(true)}
-                      className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs"
+                      className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Maximize2 className="w-3.5 h-3.5" />
-                      <span>OPEN FULL SCREEN</span>
+                      <span>FULL SCREEN</span>
                     </button>
+
+                    {onOpenAnalysisWorkspace && (
+                      <button
+                        onClick={() => onOpenAnalysisWorkspace(selectedDoc.id)}
+                        className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>[ ANALYZE DRAWING ]</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

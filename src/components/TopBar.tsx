@@ -12,16 +12,26 @@ import {
   Building2,
   Plus,
   FolderKanban,
-  ChevronDown
+  ChevronDown,
+  Calculator,
+  Zap,
+  ShieldCheck,
+  DollarSign,
 } from 'lucide-react';
 import { ProjectRecord } from '../types';
 
 export type ActiveTab = 
   | 'dashboard' 
   | 'projects-list'
-  | 'workspace' 
   | 'drawings' 
+  | 'intelligence'
+  | 'takeoff'
+  | 'workspace' 
+  | 'steel'
+  | 'architectural'
+  | 'mep'
   | 'boq' 
+  | 'rate-analysis'
   | 'bbs' 
   | 'open-items' 
   | 'revisions';
@@ -40,6 +50,12 @@ interface TopBarProps {
   onOpenValidation: () => void;
   onExportExcel: () => void;
   onTriggerAiScan: () => void;
+  onOpenValidationDashboard?: () => void;
+  onOpenReviewQueue?: () => void;
+  onOpenE2ETests?: () => void;
+  onOpenErrorReport?: () => void;
+  onOpenExportCenter?: () => void;
+  onOpenExportTests?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -56,6 +72,12 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenValidation,
   onExportExcel,
   onTriggerAiScan,
+  onOpenValidationDashboard,
+  onOpenReviewQueue,
+  onOpenE2ETests,
+  onOpenErrorReport,
+  onOpenExportCenter,
+  onOpenExportTests,
 }) => {
   const totalOpenConflicts = openItemsCount + conflictsCount;
   const hasProject = Boolean(projectData && projectData.id && projectData.project?.name);
@@ -136,12 +158,69 @@ export const TopBar: React.FC<TopBarProps> = ({
                 </div>
               )}
 
+              {/* Phase 10: Validation Dashboard */}
+              {onOpenValidationDashboard && (
+                <button
+                  onClick={onOpenValidationDashboard}
+                  title="Open Takeoff Validation Dashboard (Calculated vs Reference)"
+                  className="px-2.5 py-1.5 rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap"
+                >
+                  <FileCheck className="w-3.5 h-3.5" />
+                  <span className="hidden lg:inline">Validation</span>
+                </button>
+              )}
+
+              {/* Phase 10: Review Queue */}
+              {onOpenReviewQueue && (
+                <button
+                  onClick={onOpenReviewQueue}
+                  title="Open Smart Human Verification Queue"
+                  className="px-2.5 py-1.5 rounded-lg text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="hidden lg:inline">Review Queue</span>
+                </button>
+              )}
+
+              {/* Phase 10: 56 E2E Tests */}
+              {onOpenE2ETests && (
+                <button
+                  onClick={onOpenE2ETests}
+                  title="Run 56-Rule End-to-End Pipeline Test Suite"
+                  className="px-2.5 py-1.5 rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  <span className="hidden lg:inline">56 Tests</span>
+                </button>
+              )}
+
+              {/* Phase 11: Export Center (Primary) */}
+              {onOpenExportCenter ? (
+                <button
+                  onClick={onOpenExportCenter}
+                  title="Open Professional Excel Export Center (BOQ, BBS, Abstract, Tender)"
+                  className="px-3.5 py-1.5 rounded-lg text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>EXPORT CENTER</span>
+                </button>
+              ) : (
+                <button
+                  onClick={onExportExcel}
+                  title="Export Tender Package to Excel"
+                  className="px-3 py-1.5 rounded-lg text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Export</span>
+                </button>
+              )}
+
               <button
                 onClick={onOpenCreateProject}
-                className="px-3.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5 whitespace-nowrap"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ NEW PROJECT</span>
+                <span>+ NEW</span>
               </button>
 
               <button
@@ -200,7 +279,31 @@ export const TopBar: React.FC<TopBarProps> = ({
               }`}
             >
               <FolderOpen className="w-3.5 h-3.5" />
-              <span>Drawings (0)</span>
+              <span>Drawing Register</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('intelligence')}
+              className={`text-xs font-semibold h-full flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'intelligence'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Drawing Intelligence</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('takeoff')}
+              className={`text-xs font-semibold h-full flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'takeoff'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Calculator className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Quantity Takeoff & Calculations (Phase 4)</span>
             </button>
 
             <button
@@ -213,6 +316,42 @@ export const TopBar: React.FC<TopBarProps> = ({
             >
               <Layers className="w-3.5 h-3.5" />
               <span>RCC & CAD Takeoff</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('steel')}
+              className={`text-xs font-semibold h-full flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'steel'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Steel & Roof Takeoff (Phase 6)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('architectural')}
+              className={`text-xs font-semibold h-full flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'architectural'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Architectural & Finishes (Phase 7)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('mep')}
+              className={`text-xs font-semibold h-full flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'mep'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-500" />
+              <span>MEP Takeoff Engine (Phase 8)</span>
             </button>
 
             <button
@@ -237,6 +376,18 @@ export const TopBar: React.FC<TopBarProps> = ({
             >
               <FileCheck className="w-3.5 h-3.5" />
               <span>BOQ Schedule</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('rate-analysis')}
+              className={`text-xs font-semibold h-full flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'rate-analysis'
+                  ? 'text-emerald-700 border-b-2 border-emerald-600 font-black bg-emerald-50/50 px-2 rounded-t'
+                  : 'text-slate-700 hover:text-slate-900'
+              }`}
+            >
+              <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="font-bold">Rate Analysis & Tender Pricing (Phase 12)</span>
             </button>
 
             <button

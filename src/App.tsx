@@ -33,16 +33,33 @@ import { BoqTable } from './components/BoqTable';
 import { BbsViewer } from './components/BbsViewer';
 import { ClarificationWorkspace } from './components/ClarificationWorkspace';
 import { RevisionManager } from './components/RevisionManager';
+import { DrawingAnalysisWorkspace } from './components/DrawingAnalysisWorkspace';
+import { TakeoffWorkspace } from './components/TakeoffWorkspace';
+import { SteelRoofWorkspace } from './components/SteelRoofWorkspace';
+import { ArchitecturalTakeoffWorkspace } from './components/ArchitecturalTakeoffWorkspace';
+import { MEPTakeoffWorkspace } from './components/MEPTakeoffWorkspace';
+import { UnifiedBoqWorkspace } from './components/UnifiedBoqWorkspace';
+import { RateAnalysisWorkspace } from './components/RateAnalysisWorkspace';
+import { DocumentStorageService } from './services/documentStorage';
 import { ShowMeWhyModal } from './components/ShowMeWhyModal';
 import { ValidationAlertsModal } from './components/ValidationAlertsModal';
 import { AiScanModal } from './components/AiScanModal';
 import { exportComprehensiveTenderWorkbook } from './engine/excelExport';
 import { Building2, Plus, AlertCircle, FolderKanban, ShieldCheck } from 'lucide-react';
+import { TakeoffValidationModal } from './components/TakeoffValidationModal';
+import { ReviewQueueModal } from './components/ReviewQueueModal';
+import { EndToEndTestModal } from './components/EndToEndTestModal';
+import { TakeoffErrorReportModal } from './components/TakeoffErrorReportModal';
+import { ExportCenterModal } from './components/ExportCenterModal';
+import { ExportTestSuiteModal } from './components/ExportTestSuiteModal';
+import { INITIAL_UNIFIED_BOQ_ITEMS } from './data/unifiedBoqInitialData';
 
 export function App() {
   // Project list & active project state
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [activeProject, setActiveProject] = useState<ProjectRecord | null>(null);
+  const [projectDocuments, setProjectDocuments] = useState<import('./types').ProjectDocument[]>([]);
+  const [analysisTargetDocId, setAnalysisTargetDocId] = useState<string | undefined>(undefined);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
 
   // App navigation
@@ -71,6 +88,16 @@ export function App() {
   const [showMeWhyElement, setShowMeWhyElement] = useState<DetectedElement | null>(null);
   const [showMeWhyBoqItem, setShowMeWhyBoqItem] = useState<BoqItem | null>(null);
   const [isShowMeWhyOpen, setIsShowMeWhyOpen] = useState(false);
+
+  // Phase 10 Validation Modals
+  const [isValidationDashboardOpen, setIsValidationDashboardOpen] = useState(false);
+  const [isReviewQueueOpen, setIsReviewQueueOpen] = useState(false);
+  const [isE2ETestOpen, setIsE2ETestOpen] = useState(false);
+  const [isErrorReportOpen, setIsErrorReportOpen] = useState(false);
+
+  // Phase 11 Export Center Modals
+  const [isExportCenterOpen, setIsExportCenterOpen] = useState(false);
+  const [isExportTestOpen, setIsExportTestOpen] = useState(false);
 
   // Load all projects on initial mount from persistent storage
   useEffect(() => {
@@ -101,6 +128,23 @@ export function App() {
     }
     loadProjects();
   }, []);
+
+  // Load project documents when active project changes
+  useEffect(() => {
+    async function loadDocs() {
+      if (activeProject?.id) {
+        try {
+          const docs = await DocumentStorageService.getDocumentsByProject(activeProject.id);
+          setProjectDocuments(docs);
+        } catch (err) {
+          console.error('Failed to load project documents:', err);
+        }
+      } else {
+        setProjectDocuments([]);
+      }
+    }
+    loadDocs();
+  }, [activeProject?.id]);
 
   // Validation issues count
   const validationIssues = validateProjectDataset(elements, boqItems, bbsRecords, drawings);
@@ -435,6 +479,12 @@ export function App() {
         onOpenValidation={() => setIsValidationOpen(true)}
         onExportExcel={handleExportExcel}
         onTriggerAiScan={() => setIsAiScanOpen(true)}
+        onOpenValidationDashboard={() => setIsValidationDashboardOpen(true)}
+        onOpenReviewQueue={() => setIsReviewQueueOpen(true)}
+        onOpenE2ETests={() => setIsE2ETestOpen(true)}
+        onOpenErrorReport={() => setIsErrorReportOpen(true)}
+        onOpenExportCenter={() => setIsExportCenterOpen(true)}
+        onOpenExportTests={() => setIsExportTestOpen(true)}
       />
 
       {/* Main Tab Routing Area */}
@@ -509,6 +559,11 @@ export function App() {
             onCreateNewProject={handleOpenCreateModal}
             onToggleArchive={() => handleToggleArchive(activeProject.id)}
             onNavigateToDrawings={() => setActiveTab('drawings')}
+            onNavigateToIntelligence={() => setActiveTab('intelligence')}
+            onNavigateToTakeoff={() => setActiveTab('takeoff')}
+            onNavigateToSteel={() => setActiveTab('steel')}
+            onNavigateToArchitectural={() => setActiveTab('architectural')}
+            onNavigateToMep={() => setActiveTab('mep')}
             onNavigateToBoq={() => setActiveTab('boq')}
             onNavigateToBbs={() => setActiveTab('bbs')}
             onNavigateToOpenItems={() => setActiveTab('open-items')}
@@ -518,15 +573,44 @@ export function App() {
         {/* Drawings Register */}
         {activeTab === 'drawings' && activeProject && (
           <DrawingManager
+            activeProject={activeProject}
             drawings={drawings}
             activeDrawingId={activeDrawingId}
             onSelectDrawing={(id) => {
               setActiveDrawingId(id);
               setActiveTab('workspace');
             }}
+            onOpenAnalysisWorkspace={(docId) => {
+              setAnalysisTargetDocId(docId);
+              setActiveTab('intelligence');
+            }}
             onAddDrawing={handleAddDrawing}
             onDeleteDrawing={handleDeleteDrawing}
             onOpenAiScan={() => setIsAiScanOpen(true)}
+          />
+        )}
+
+        {/* Phase 3: Drawing Intelligence & Analysis Engine */}
+        {activeTab === 'intelligence' && activeProject && (
+          <DrawingAnalysisWorkspace
+            project={activeProject}
+            documents={projectDocuments}
+            initialDocumentId={analysisTargetDocId}
+            onClose={() => setActiveTab('drawings')}
+            onNavigateToDocumentManager={() => setActiveTab('drawings')}
+          />
+        )}
+
+        {/* Phase 4: Engineering Quantity Takeoff & Calculation Engine */}
+        {activeTab === 'takeoff' && activeProject && (
+          <TakeoffWorkspace
+            project={activeProject}
+            documents={projectDocuments}
+            onOpenDrawingViewer={(docId) => {
+              setAnalysisTargetDocId(docId);
+              setActiveTab('intelligence');
+            }}
+            onNavigateToBoq={() => setActiveTab('boq')}
           />
         )}
 
@@ -550,37 +634,59 @@ export function App() {
           />
         )}
 
-        {/* BBS Viewer */}
-        {activeTab === 'bbs' && activeProject && (
-          <BbsViewer
-            bbsRecords={bbsRecords}
-            elements={elements}
-            onSelectElement={(elId) => {
-              setSelectedElementId(elId);
-              setActiveTab('workspace');
+        {/* Phase 6: Steel Structure & Roofing Takeoff Engine */}
+        {activeTab === 'steel' && activeProject && (
+          <SteelRoofWorkspace
+            drawings={drawings}
+            onOpenDrawing={(dwgNum) => {
+              const match = drawings.find((d) => d.drawingNumber === dwgNum || d.id === dwgNum);
+              if (match) {
+                setActiveDrawingId(match.id);
+                setActiveTab('workspace');
+              }
             }}
-            onAddBbsRecord={(r) => setBbsRecords((prev) => [r, ...prev])}
-            onDeleteBbsRecord={(id) => setBbsRecords((prev) => prev.filter((b) => b.id !== id))}
             onExportExcel={handleExportExcel}
           />
         )}
 
-        {/* BOQ Table */}
+        {/* Phase 7: Architectural, Masonry, DPC & Finishes Takeoff Engine */}
+        {activeTab === 'architectural' && activeProject && (
+          <ArchitecturalTakeoffWorkspace />
+        )}
+
+        {/* Phase 8: Complete MEP Quantity Takeoff Engine */}
+        {activeTab === 'mep' && activeProject && (
+          <MEPTakeoffWorkspace onBackToDashboard={() => setActiveTab('dashboard')} />
+        )}
+
+        {/* BBS Viewer */}
+        {activeTab === 'bbs' && activeProject && (
+          <div className="p-6 max-w-7xl mx-auto w-full">
+            <BbsViewer
+              projectId={activeProject.id}
+              onNavigateToDrawing={(docId, page) => {
+                setAnalysisTargetDocId(docId);
+                setActiveTab('intelligence');
+              }}
+              onOpenItemCreate={(newItem) => {
+                setOpenItems((prev) => [newItem, ...prev]);
+              }}
+            />
+          </div>
+        )}
+
+        {/* BOQ Table / Phase 9: Unified BOQ Assembly Engine */}
         {activeTab === 'boq' && activeProject && (
-          <BoqTable
-            boqItems={boqItems}
-            elements={elements}
-            projectData={activeProject}
-            onSelectElement={(elId) => {
-              setSelectedElementId(elId);
-              setActiveTab('workspace');
-            }}
-            onUpdateBoqItem={(updated) =>
-              setBoqItems((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
-            }
-            onDeleteBoqItem={(id) => setBoqItems((prev) => prev.filter((b) => b.id !== id))}
-            onTriggerShowMeWhy={handleTriggerShowMeWhyBoq}
-            onExportExcel={handleExportExcel}
+          <UnifiedBoqWorkspace
+            onBackToDashboard={() => setActiveTab('dashboard')}
+          />
+        )}
+
+        {/* Phase 12: Rate Analysis & Tender Pricing Engine */}
+        {activeTab === 'rate-analysis' && activeProject && (
+          <RateAnalysisWorkspace
+            project={activeProject.project}
+            unifiedBoqItems={INITIAL_UNIFIED_BOQ_ITEMS}
           />
         )}
 
@@ -650,6 +756,78 @@ export function App() {
           setIsValidationOpen(false);
         }}
       />
+
+      {/* Phase 10: Takeoff Validation Dashboard */}
+      {isValidationDashboardOpen && (
+        <TakeoffValidationModal
+          isOpen={isValidationDashboardOpen}
+          onClose={() => setIsValidationDashboardOpen(false)}
+          boqItems={INITIAL_UNIFIED_BOQ_ITEMS}
+          onInspectCalculation={() => {
+            setActiveTab('boq');
+            setIsValidationDashboardOpen(false);
+          }}
+          onInspectDrawing={() => {
+            setActiveTab('intelligence');
+            setIsValidationDashboardOpen(false);
+          }}
+        />
+      )}
+
+      {/* Phase 10: Review Queue Modal */}
+      {isReviewQueueOpen && (
+        <ReviewQueueModal
+          isOpen={isReviewQueueOpen}
+          onClose={() => setIsReviewQueueOpen(false)}
+          onInspectDrawing={() => {
+            setActiveTab('intelligence');
+            setIsReviewQueueOpen(false);
+          }}
+        />
+      )}
+
+      {/* Phase 10: End-to-End Test Suite Modal */}
+      {isE2ETestOpen && (
+        <EndToEndTestModal
+          isOpen={isE2ETestOpen}
+          onClose={() => setIsE2ETestOpen(false)}
+        />
+      )}
+
+      {/* Phase 10: Takeoff Error Report Modal */}
+      {isErrorReportOpen && (
+        <TakeoffErrorReportModal
+          isOpen={isErrorReportOpen}
+          onClose={() => setIsErrorReportOpen(false)}
+        />
+      )}
+
+      {/* Phase 11: Professional Export Center Modal */}
+      {isExportCenterOpen && (
+        <ExportCenterModal
+          isOpen={isExportCenterOpen}
+          onClose={() => setIsExportCenterOpen(false)}
+          projectData={activeProject}
+          drawings={drawings}
+          boqItems={INITIAL_UNIFIED_BOQ_ITEMS}
+          elements={elements}
+          bbsRecords={bbsRecords}
+          openItems={openItems}
+          conflicts={conflicts}
+          assumptions={[]}
+          exclusions={[]}
+          revisions={revisions}
+          onOpenTestRunner={() => setIsExportTestOpen(true)}
+        />
+      )}
+
+      {/* Phase 11: 35-Rule Export Test Suite Modal */}
+      {isExportTestOpen && (
+        <ExportTestSuiteModal
+          isOpen={isExportTestOpen}
+          onClose={() => setIsExportTestOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -68,8 +68,8 @@ export function recalculateSingleElement(
       lengthM: element.dimensions.length,
       count: element.dimensions.count,
     });
-    element.calculation = ductCalc.sheetMetalAreaM2;
-    newQuantity = ductCalc.sheetMetalAreaM2.netQuantity;
+    element.calculation = ductCalc;
+    newQuantity = ductCalc.netQuantity;
   } else if (element.category === 'pipe') {
     const pipeCalc = calculatePipeRun({
       system: 'Drainage',

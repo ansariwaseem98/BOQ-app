@@ -34,6 +34,11 @@ interface ProjectDashboardProps {
   onToggleArchive: () => void;
   // Module navigation triggers
   onNavigateToDrawings?: () => void;
+  onNavigateToIntelligence?: () => void;
+  onNavigateToTakeoff?: () => void;
+  onNavigateToSteel?: () => void;
+  onNavigateToArchitectural?: () => void;
+  onNavigateToMep?: () => void;
   onNavigateToBoq?: () => void;
   onNavigateToBbs?: () => void;
   onNavigateToOpenItems?: () => void;
@@ -46,6 +51,11 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
   onCreateNewProject,
   onToggleArchive,
   onNavigateToDrawings,
+  onNavigateToIntelligence,
+  onNavigateToTakeoff,
+  onNavigateToSteel,
+  onNavigateToArchitectural,
+  onNavigateToMep,
   onNavigateToBoq,
   onNavigateToBbs,
   onNavigateToOpenItems,
@@ -312,76 +322,141 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
           Project Takeoff Modules & Engineering Status
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-3">
           {/* 1. Drawings */}
           <div
             onClick={onNavigateToDrawings}
-            className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
           >
             <div className="flex items-center justify-between text-slate-500">
               <span className="text-xs font-semibold">Drawings</span>
               <Layers className="w-4 h-4 text-indigo-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 font-mono">0</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">No drawings uploaded yet</p>
+              <p className="text-2xl font-black text-slate-900 font-mono">{drawingCount}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {drawingCount > 0 ? `${drawingCount} registered drawing${drawingCount > 1 ? 's' : ''}` : 'No drawings uploaded yet'}
+              </p>
             </div>
           </div>
 
-          {/* 2. Elements Analyzed */}
-          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-2">
+          {/* 2. Drawing Intelligence */}
+          <div
+            onClick={onNavigateToIntelligence || onNavigateToDrawings}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+          >
             <div className="flex items-center justify-between text-slate-500">
-              <span className="text-xs font-semibold">Analyzed Elements</span>
+              <span className="text-xs font-semibold">Intelligence</span>
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 font-mono">0</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">0% completed</p>
+              <p className="text-2xl font-black text-slate-900 font-mono">Phase 3</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Drawing analysis engine</p>
             </div>
           </div>
 
-          {/* 3. Open Items */}
+          {/* 3. Quantity Takeoff Engine */}
           <div
-            onClick={onNavigateToOpenItems}
-            className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:border-amber-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+            onClick={onNavigateToTakeoff}
+            className="bg-white border border-indigo-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-50/30 to-transparent"
           >
-            <div className="flex items-center justify-between text-slate-500">
-              <span className="text-xs font-semibold">Open Items / RFIs</span>
-              <HelpCircle className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center justify-between text-indigo-700">
+              <span className="text-xs font-bold">Takeoff Engine</span>
+              <span className="text-[10px] font-mono font-bold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">Phase 4</span>
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 font-mono">0</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">No pending engineering queries</p>
+              <p className="text-2xl font-black text-indigo-950 font-mono">Active</p>
+              <p className="text-[11px] text-indigo-600 mt-0.5">Deterministic calculations</p>
             </div>
           </div>
 
-          {/* 4. BOQ Items */}
+          {/* 4. Steel & Roof Engine (Phase 6) */}
           <div
-            onClick={onNavigateToBoq}
-            className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+            onClick={onNavigateToSteel}
+            className="bg-white border border-indigo-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-50/20 to-transparent"
           >
-            <div className="flex items-center justify-between text-slate-500">
-              <span className="text-xs font-semibold">BOQ Schedule Items</span>
-              <FileSpreadsheet className="w-4 h-4 text-indigo-600" />
+            <div className="flex items-center justify-between text-indigo-700">
+              <span className="text-xs font-bold">Steel & Roof</span>
+              <span className="text-[10px] font-mono font-bold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">Phase 6</span>
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 font-mono">0</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Ready for takeoff</p>
+              <p className="text-2xl font-black text-indigo-950 font-mono">Engine</p>
+              <p className="text-[11px] text-indigo-600 mt-0.5">Members, purlins & roof</p>
+            </div>
+          </div>
+
+          {/* 5. Architectural & Finishes Engine (Phase 7) */}
+          <div
+            onClick={onNavigateToArchitectural}
+            className="bg-white border border-indigo-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-50/30 to-transparent"
+          >
+            <div className="flex items-center justify-between text-indigo-700">
+              <span className="text-xs font-bold">Architectural</span>
+              <span className="text-[10px] font-mono font-bold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">Phase 7</span>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-indigo-950 font-mono">Active</p>
+              <p className="text-[11px] text-indigo-600 mt-0.5">Masonry, DPC & finishes</p>
+            </div>
+          </div>
+
+          {/* 6. MEP Quantity Takeoff Engine (Phase 8) */}
+          <div
+            onClick={onNavigateToMep}
+            className="bg-white border border-amber-200 rounded-xl p-3.5 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-amber-50/40 to-transparent"
+          >
+            <div className="flex items-center justify-between text-amber-800">
+              <span className="text-xs font-bold">MEP Takeoff</span>
+              <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded">Phase 8</span>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-amber-950 font-mono">10 Disciplines</p>
+              <p className="text-[11px] text-amber-700 mt-0.5">Electrical, HVAC, Plumbing, Fire, ELV</p>
             </div>
           </div>
 
           {/* 5. BBS Rebar */}
           <div
             onClick={onNavigateToBbs}
-            className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
           >
             <div className="flex items-center justify-between text-slate-500">
-              <span className="text-xs font-semibold">BBS Bar Marks</span>
+              <span className="text-xs font-semibold">BBS Rebar</span>
               <Activity className="w-4 h-4 text-indigo-600" />
             </div>
             <div>
+              <p className="text-2xl font-black text-slate-900 font-mono">Phase 5</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Bar bending schedule</p>
+            </div>
+          </div>
+
+          {/* 6. Open Items */}
+          <div
+            onClick={onNavigateToOpenItems}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-amber-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+          >
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-xs font-semibold">Open Items</span>
+              <HelpCircle className="w-4 h-4 text-amber-500" />
+            </div>
+            <div>
               <p className="text-2xl font-black text-slate-900 font-mono">0</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">No rebar extracted</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Pending queries</p>
+            </div>
+          </div>
+
+          {/* 7. BOQ Items */}
+          <div
+            onClick={onNavigateToBoq}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+          >
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-xs font-semibold">BOQ Schedule</span>
+              <FileSpreadsheet className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-slate-900 font-mono">0</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Ready for takeoff</p>
             </div>
           </div>
         </div>

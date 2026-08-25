@@ -226,6 +226,11 @@ export async function extractFileTechnicalMetadata(file: File): Promise<{
 
 export const DocumentStorageService = {
   /**
+   * Helper to generate document ID
+   */
+  generateDocumentId,
+
+  /**
    * Fetch all documents strictly belonging to a specific project_id
    */
   async getDocumentsByProject(projectId: string, includeArchived = false): Promise<ProjectDocument[]> {
