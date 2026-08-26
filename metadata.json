@@ -1,6 +1,6 @@
 {
   "name": "AI BOQ & Tender Estimation Engineer",
-  "description": "Professional quantity takeoff, Bar Bending Schedule (BBS), structural estimation, drawing traceability, and tender BOQ engineering software.",
+  "description": "Professional deterministic measurement & calculation engine, Industrial MEP Quantity Engine (Electrical, HVAC, Plumbing, Fire Fighting, ELV, Supports, Equipment), structural steel & purlins takeoff, roof cladding & skylights, Bar Bending Schedule (BBS), RCC estimation, drawing traceability, 40-point automated verification suite, and tender BOQ engineering software.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

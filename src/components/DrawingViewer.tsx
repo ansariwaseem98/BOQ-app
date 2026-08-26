@@ -1,663 +1,628 @@
+/**
+ * AI BOQ & Tender Estimation Engineer - Phase 14A Interactive Drawing Viewer
+ * Vector & Raster CAD/PDF Rendering with Bounding Box Pinpoint, Zoom/Pan & 2-Point Calibration
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  ZoomIn, 
-  ZoomOut, 
-  Maximize, 
-  RotateCcw, 
-  Ruler, 
-  Square, 
-  Crosshair, 
-  Layers, 
-  Sparkles,
-  MousePointer,
-  AlertCircle
+import {
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Minimize2,
+  RotateCcw,
+  Ruler,
+  Crosshair,
+  Layers,
+  Info,
+  CheckCircle2,
+  AlertTriangle,
+  FileQuestion,
+  Eye,
+  Scan,
 } from 'lucide-react';
-import { DrawingRecord, DetectedElement, OpenItem, BoundingBox } from '../types';
+import {
+  SheetIntelligence,
+  DetectedElement,
+  DimensionObject,
+  BoundingBox,
+  DrawingCalibration,
+} from '../types/drawingIntelligence';
 
 interface DrawingViewerProps {
-  drawing?: DrawingRecord | null;
-  elements?: DetectedElement[];
-  openItems?: OpenItem[];
+  activeSheet: SheetIntelligence;
+  elements: DetectedElement[];
+  dimensions: DimensionObject[];
+  highlightRegion?: BoundingBox | null;
   selectedElementId?: string | null;
-  onSelectElement: (element: DetectedElement) => void;
-  onSelectOpenItem?: (openItem: OpenItem) => void;
-  onAddElementBoundingBox?: (box: BoundingBox) => void;
-  onCalibrateScale?: (metersPerUnit: number) => void;
+  onSelectElement?: (element: DetectedElement) => void;
+  onSelectDimension?: (dimension: DimensionObject) => void;
+  onCalibrateComplete?: (calibration: DrawingCalibration) => void;
 }
 
 export const DrawingViewer: React.FC<DrawingViewerProps> = ({
-  drawing,
-  elements = [],
-  openItems = [],
-  selectedElementId = null,
+  activeSheet,
+  elements,
+  dimensions,
+  highlightRegion,
+  selectedElementId,
   onSelectElement,
-  onSelectOpenItem,
-  onAddElementBoundingBox,
-  onCalibrateScale,
+  onSelectDimension,
+  onCalibrateComplete,
 }) => {
+  const [zoom, setZoom] = useState<number>(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Calibration tool state
+  const [isCalibrating, setIsCalibrating] = useState<boolean>(false);
+  const [calibrationPoint1, setCalibrationPoint1] = useState<{ x: number; y: number } | null>(null);
+  const [calibrationPoint2, setCalibrationPoint2] = useState<{ x: number; y: number } | null>(null);
+  const [knownDistanceInput, setKnownDistanceInput] = useState<string>('5000');
+  const [showCalibrationModal, setShowCalibrationModal] = useState<boolean>(false);
+
+  // Layer toggles
+  const [showElementsLayer, setShowElementsLayer] = useState<boolean>(true);
+  const [showDimensionsLayer, setShowDimensionsLayer] = useState<boolean>(true);
+  const [showGridLayer, setShowGridLayer] = useState<boolean>(true);
+
   const containerRef = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState(1.0);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [startPan, setStartPan] = useState({ x: 0, y: 0 });
-  
-  // Tools: 'select' | 'measure' | 'box' | 'pan'
-  const [activeTool, setActiveTool] = useState<'select' | 'measure' | 'box' | 'pan'>('select');
-  
-  // Layer visibility toggles
-  const [showGrids, setShowGrids] = useState(true);
-  const [showElements, setShowElements] = useState(true);
-  const [showOpenItems, setShowOpenItems] = useState(true);
-  const [showDimensions, setShowDimensions] = useState(true);
 
-  // Measurement tool state
-  const [measurePoints, setMeasurePoints] = useState<{ x: number; y: number }[]>([]);
-  const [measuredDistanceM, setMeasuredDistanceM] = useState<number | null>(null);
-  
-  // Box creation state
-  const [boxStart, setBoxStart] = useState<{ x: number; y: number } | null>(null);
-  const [currentBox, setCurrentBox] = useState<BoundingBox | null>(null);
+  // Auto-focus on highlighted region when selected from parent
+  useEffect(() => {
+    if (highlightRegion) {
+      // Calculate center of region (as percentage 0-100)
+      const centerX = highlightRegion.x + highlightRegion.width / 2;
+      const centerY = highlightRegion.y + highlightRegion.height / 2;
+      // Pan such that center is at 50%
+      setZoom(1.6);
+      setPan({
+        x: (50 - centerX) * 8,
+        y: (50 - centerY) * 6,
+      });
+    }
+  }, [highlightRegion]);
 
-  // Filter elements & open items for this drawing
-  const drawingElements = elements.filter(
-    (e) => e.drawingId === drawing.id || e.drawingNumber === drawing.drawingNumber
-  );
-  const drawingOpenItems = openItems.filter(
-    (oi) => oi.drawingId === drawing.id || oi.drawingNumber === drawing.drawingNumber
-  );
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 4));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
+  const handleResetView = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (activeTool === 'pan' || e.button === 1 || (e.button === 0 && e.altKey)) {
-      setIsPanning(true);
-      setStartPan({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-    } else if (activeTool === 'measure') {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const x = (e.clientX - rect.left - pan.x) / zoom;
-      const y = (e.clientY - rect.top - pan.y) / zoom;
-
-      if (measurePoints.length === 0 || measurePoints.length === 2) {
-        setMeasurePoints([{ x, y }]);
-        setMeasuredDistanceM(null);
-      } else if (measurePoints.length === 1) {
-        const p1 = measurePoints[0];
-        const p2 = { x, y };
-        setMeasurePoints([p1, p2]);
-        const pixelDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-        const scale = drawing.calibrationScale || 28.5; // pixels per meter
-        const distM = Number((pixelDist / scale).toFixed(3));
-        setMeasuredDistanceM(distM);
-      }
-    } else if (activeTool === 'box') {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      // Normalised coordinates (0-100%)
-      const contentWidth = 900;
-      const contentHeight = 600;
-      const rawX = (e.clientX - rect.left - pan.x) / zoom;
-      const rawY = (e.clientY - rect.top - pan.y) / zoom;
-      const normX = Math.max(0, Math.min(100, (rawX / contentWidth) * 100));
-      const normY = Math.max(0, Math.min(100, (rawY / contentHeight) * 100));
-      setBoxStart({ x: normX, y: normY });
-    }
+    if (isCalibrating) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isPanning) {
-      setPan({ x: e.clientX - startPan.x, y: e.clientY - startPan.y });
-    } else if (activeTool === 'box' && boxStart) {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const contentWidth = 900;
-      const contentHeight = 600;
-      const rawX = (e.clientX - rect.left - pan.x) / zoom;
-      const rawY = (e.clientY - rect.top - pan.y) / zoom;
-      const normX = Math.max(0, Math.min(100, (rawX / contentWidth) * 100));
-      const normY = Math.max(0, Math.min(100, (rawY / contentHeight) * 100));
-
-      const x = Math.min(boxStart.x, normX);
-      const y = Math.min(boxStart.y, normY);
-      const width = Math.abs(normX - boxStart.x);
-      const height = Math.abs(normY - boxStart.y);
-
-      setCurrentBox({ x, y, width, height, label: 'New Element' });
+    if (isDragging && !isCalibrating) {
+      setPan({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
     }
   };
 
   const handleMouseUp = () => {
-    setIsPanning(false);
-    if (activeTool === 'box' && currentBox && currentBox.width > 2 && currentBox.height > 2) {
-      if (onAddElementBoundingBox) {
-        onAddElementBoundingBox(currentBox);
-      }
-      setBoxStart(null);
-      setCurrentBox(null);
-      setActiveTool('select');
-    } else {
-      setBoxStart(null);
-      setCurrentBox(null);
+    setIsDragging(false);
+  };
+
+  const handleCanvasClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!isCalibrating) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = ((e.clientX - rect.left - pan.x) / zoom) * (1000 / rect.width);
+    const clickY = ((e.clientY - rect.top - pan.y) / zoom) * (700 / rect.height);
+
+    if (!calibrationPoint1) {
+      setCalibrationPoint1({ x: Math.round(clickX), y: Math.round(clickY) });
+    } else if (!calibrationPoint2) {
+      setCalibrationPoint2({ x: Math.round(clickX), y: Math.round(clickY) });
+      setShowCalibrationModal(true);
     }
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
-    setZoom((prev) => Math.min(Math.max(0.4, prev * zoomFactor), 6.0));
-  };
+  const handleSaveCalibration = () => {
+    if (calibrationPoint1 && calibrationPoint2 && onCalibrateComplete) {
+      const dx = calibrationPoint2.x - calibrationPoint1.x;
+      const dy = calibrationPoint2.y - calibrationPoint1.y;
+      const pixelDistance = Math.round(Math.sqrt(dx * dx + dy * dy));
+      const knownMm = parseFloat(knownDistanceInput) || 5000;
 
-  const resetView = () => {
-    setZoom(1.0);
-    setPan({ x: 0, y: 0 });
-    setMeasurePoints([]);
-    setMeasuredDistanceM(null);
+      const cal: DrawingCalibration = {
+        calibrationId: `CAL-${Date.now().toString().slice(-4)}`,
+        sheetId: activeSheet.sheetId,
+        drawingNumber: activeSheet.drawingNumber,
+        page: activeSheet.pageNumber,
+        point1: calibrationPoint1,
+        point2: calibrationPoint2,
+        pixelDistance,
+        knownRealWorldDimension: knownMm,
+        unit: 'mm',
+        derivedScale: knownMm >= 4000 ? '1:100' : '1:50',
+        derivedScaleRatio: knownMm / pixelDistance / 1000,
+        isValidated: true,
+        status: 'VALID',
+        calibratedBy: 'QS Verification Engineer',
+        calibratedAt: new Date().toISOString(),
+      };
+
+      onCalibrateComplete(cal);
+      setIsCalibrating(false);
+      setCalibrationPoint1(null);
+      setCalibrationPoint2(null);
+      setShowCalibrationModal(false);
+    }
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#1E293B] select-none overflow-hidden relative">
+    <div
+      ref={containerRef}
+      className={`relative flex flex-col bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-md select-none ${
+        isFullscreen ? 'fixed inset-0 z-50 rounded-none' : 'h-[540px]'
+      }`}
+    >
       {/* Top Toolbar */}
-      <div className="h-11 px-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between z-10 text-xs text-slate-300 shrink-0">
-        {/* Left: Tools */}
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between px-3 py-2 bg-slate-950/90 border-b border-slate-800 text-slate-200 text-xs backdrop-blur-sm z-20">
+        <div className="flex items-center gap-2">
+          <span className="font-mono font-bold bg-indigo-900/60 text-indigo-300 border border-indigo-700/50 px-2 py-0.5 rounded">
+            {activeSheet.drawingNumber} {activeSheet.revision}
+          </span>
+          <span className="font-medium text-slate-300 truncate max-w-xs sm:max-w-md">
+            {activeSheet.title} (Page {activeSheet.pageNumber})
+          </span>
+          <span className="bg-slate-800 text-slate-400 font-mono text-[10px] px-1.5 py-0.5 rounded">
+            Scale {activeSheet.scale}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          {/* Layer toggles */}
           <button
-            onClick={() => setActiveTool('select')}
-            title="Select & Inspect Element"
+            onClick={() => setShowElementsLayer(!showElementsLayer)}
             className={`p-1.5 rounded transition-colors ${
-              activeTool === 'select'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+              showElementsLayer ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40' : 'text-slate-500 hover:bg-slate-800'
             }`}
+            title="Toggle Elements Layer"
           >
-            <MousePointer className="w-3.5 h-3.5" />
+            <Layers className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => setActiveTool('pan')}
-            title="Pan View"
+            onClick={() => setShowDimensionsLayer(!showDimensionsLayer)}
             className={`p-1.5 rounded transition-colors ${
-              activeTool === 'pan'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+              showDimensionsLayer ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/40' : 'text-slate-500 hover:bg-slate-800'
             }`}
+            title="Toggle Dimensions Layer"
           >
             <Crosshair className="w-3.5 h-3.5" />
           </button>
+
+          <div className="h-4 w-px bg-slate-800 mx-1" />
+
+          {/* Calibration toggle */}
           <button
             onClick={() => {
-              setActiveTool('measure');
-              setMeasurePoints([]);
-              setMeasuredDistanceM(null);
+              setIsCalibrating(!isCalibrating);
+              setCalibrationPoint1(null);
+              setCalibrationPoint2(null);
             }}
-            title="Measure Dimension / Calibrate Scale"
-            className={`px-2 py-1.5 rounded transition-colors flex items-center gap-1.5 ${
-              activeTool === 'measure'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+            className={`px-2 py-1 rounded flex items-center gap-1 text-[11px] font-semibold transition-colors ${
+              isCalibrating
+                ? 'bg-amber-500 text-slate-950 font-bold animate-pulse'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
             <Ruler className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-medium">Measure</span>
+            <span>{isCalibrating ? 'Click 2 Points...' : 'Calibrate Scale'}</span>
+          </button>
+
+          <div className="h-4 w-px bg-slate-800 mx-1" />
+
+          {/* Zoom controls */}
+          <button
+            onClick={handleZoomOut}
+            className="p-1.5 hover:bg-slate-800 rounded text-slate-300 hover:text-white"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <span className="font-mono text-[10px] text-slate-400 w-10 text-center">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={handleZoomIn}
+            className="p-1.5 hover:bg-slate-800 rounded text-slate-300 hover:text-white"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => setActiveTool('box')}
-            title="Draw New Element Box"
-            className={`px-2 py-1.5 rounded transition-colors flex items-center gap-1.5 ${
-              activeTool === 'box'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
+            onClick={handleResetView}
+            className="p-1.5 hover:bg-slate-800 rounded text-slate-300 hover:text-white"
+            title="Reset View"
           >
-            <Square className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-medium">Add Box</span>
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="h-4 w-px bg-slate-800 mx-1" />
+
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-1.5 hover:bg-slate-800 rounded text-slate-300 hover:text-white"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
         </div>
-
-        {/* Center: Active Drawing Info */}
-        <div className="flex items-center gap-2 font-mono text-[11px]">
-          <span className="text-indigo-400 font-bold">{drawing.drawingNumber}</span>
-          <span className="text-slate-600">•</span>
-          <span className="text-slate-200 font-sans font-medium truncate max-w-[260px]">{drawing.title}</span>
-          <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700">
-            {drawing.revision}
-          </span>
-        </div>
-
-        {/* Right: Layers & Zoom Controls */}
-        <div className="flex items-center gap-2">
-          {/* Layer toggles */}
-          <div className="flex items-center gap-1 bg-slate-950 px-1.5 py-1 rounded border border-slate-800 text-[10px]">
-            <button
-              onClick={() => setShowGrids(!showGrids)}
-              className={`px-2 py-0.5 rounded font-medium ${showGrids ? 'bg-indigo-600/30 text-indigo-300' : 'text-slate-500'}`}
-            >
-              Grids
-            </button>
-            <button
-              onClick={() => setShowElements(!showElements)}
-              className={`px-2 py-0.5 rounded font-medium ${showElements ? 'bg-emerald-600/30 text-emerald-300' : 'text-slate-500'}`}
-            >
-              Elements ({drawingElements.length})
-            </button>
-            <button
-              onClick={() => setShowOpenItems(!showOpenItems)}
-              className={`px-2 py-0.5 rounded font-medium ${showOpenItems ? 'bg-amber-600/30 text-amber-300' : 'text-slate-500'}`}
-            >
-              Open Items ({drawingOpenItems.length})
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1 border-l border-slate-800 pl-2">
-            <button
-              onClick={() => setZoom((z) => Math.max(0.4, z - 0.2))}
-              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
-            >
-              <ZoomOut className="w-3.5 h-3.5" />
-            </button>
-            <span className="font-mono text-[10px] text-slate-400 w-9 text-center">
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              onClick={() => setZoom((z) => Math.min(6.0, z + 0.2))}
-              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={resetView}
-              title="Reset View"
-              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white ml-1"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
       </div>
 
-      {/* Floating Indicators on Top Left of Blueprint (Sleek Theme Design) */}
-      <div className="absolute top-14 left-4 z-20 flex items-center gap-2 pointer-events-none">
-        <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded shadow-sm text-[10px] font-bold text-slate-800 border border-slate-200">
-          SCALE: {drawing.scaleRatio || '1:100 (A1)'}
-        </div>
-        <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded shadow-sm text-[10px] font-bold text-indigo-600 border border-slate-200 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
-          AI ANALYSIS ACTIVE
-        </div>
-      </div>
-
-      {/* Measurement readout bar if active */}
-      {activeTool === 'measure' && (
-        <div className="absolute top-14 left-72 z-20 bg-slate-900/90 border border-emerald-500/40 rounded-lg px-3 py-1.5 text-xs text-slate-200 shadow-xl backdrop-blur-xs flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-emerald-400">
-            <Ruler className="w-4 h-4" />
-            <span className="font-semibold">CAD Measurement Tool:</span>
-          </div>
-          {measurePoints.length === 0 && <span>Click first point on drawing</span>}
-          {measurePoints.length === 1 && <span>Click second point to measure span</span>}
-          {measuredDistanceM !== null && (
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-emerald-300 font-bold text-sm bg-emerald-950 px-2 py-0.5 rounded border border-emerald-700">
-                {measuredDistanceM.toFixed(3)} m ({Math.round(measuredDistanceM * 1000)} mm)
-              </span>
-              <button
-                onClick={() => {
-                  setMeasurePoints([]);
-                  setMeasuredDistanceM(null);
-                }}
-                className="text-[10px] text-slate-400 hover:text-white underline"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Interactive CAD Canvas Area */}
+      {/* Main Canvas / SVG Interactive Area */}
       <div
-        ref={containerRef}
+        className="relative flex-1 bg-slate-950 overflow-hidden cursor-crosshair"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onWheel={handleWheel}
-        className={`flex-1 w-full h-full relative cursor-${
-          activeTool === 'pan' ? (isPanning ? 'grabbing' : 'grab') : activeTool === 'measure' ? 'crosshair' : activeTool === 'box' ? 'crosshair' : 'default'
-        }`}
+        onMouseLeave={handleMouseUp}
       >
-        <div
+        {/* Instruction badge when calibrating */}
+        {isCalibrating && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-amber-500 text-slate-950 px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5">
+            <Scan className="w-3.5 h-3.5 animate-spin" />
+            {!calibrationPoint1 ? 'Click First Reference Point on Drawing' : 'Click Second Reference Point'}
+          </div>
+        )}
+
+        <svg
+          viewBox="0 0 1000 700"
+          className="w-full h-full"
+          onClick={handleCanvasClick}
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: 'top left',
-            transition: isPanning ? 'none' : 'transform 0.05s ease-out',
+            transformOrigin: '50% 50%',
+            transition: isDragging ? 'none' : 'transform 0.1s ease-out',
           }}
-          className="w-[900px] h-[600px] absolute top-8 left-8 bg-[#0e1626] border border-slate-700 shadow-2xl rounded"
         >
-          {/* Vector Blueprint CAD Drawing SVG */}
-          <svg className="w-full h-full" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="cad-grid-pattern" width="30" height="30" patternUnits="userSpaceOnUse">
-                <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1e293b" strokeWidth="0.5" />
-              </pattern>
-              <pattern id="concrete-hatch" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-                <line x1="0" y1="0" x2="0" y2="10" stroke="#334155" strokeWidth="1" />
-              </pattern>
-              <pattern id="blockwork-hatch" width="8" height="8" patternTransform="rotate(0 0 0)" patternUnits="userSpaceOnUse">
-                <rect width="8" height="4" fill="none" stroke="#3b4252" strokeWidth="0.5" />
-                <rect y="4" width="8" height="4" fill="none" stroke="#3b4252" strokeWidth="0.5" />
-              </pattern>
-            </defs>
+          <defs>
+            {/* Architectural Grid pattern */}
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" strokeWidth="0.8" />
+            </pattern>
+            {/* Hatch pattern for masonry */}
+            <pattern id="brickHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+              <path d="M 0 5 L 10 5 M 5 0 L 5 5 M 0 10 L 10 10" stroke="#38bdf8" strokeWidth="0.5" fill="none" opacity="0.3" />
+            </pattern>
+            {/* Concrete hatch pattern */}
+            <pattern id="concreteHatch" width="16" height="16" patternUnits="userSpaceOnUse">
+              <circle cx="4" cy="4" r="1" fill="#94a3b8" opacity="0.5" />
+              <circle cx="12" cy="12" r="1.2" fill="#94a3b8" opacity="0.5" />
+              <circle cx="12" cy="4" r="0.8" fill="#94a3b8" opacity="0.5" />
+              <circle cx="4" cy="12" r="0.9" fill="#94a3b8" opacity="0.5" />
+            </pattern>
+          </defs>
 
-            {/* Grid background */}
-            <rect width="900" height="600" fill="url(#cad-grid-pattern)" />
+          {/* Background & Grid */}
+          <rect width="1000" height="700" fill="#090d16" />
+          {showGridLayer && <rect width="1000" height="700" fill="url(#grid)" />}
 
-            {/* Drawing Border & Title Block */}
-            <rect x="15" y="15" width="870" height="570" fill="none" stroke="#334155" strokeWidth="1.5" />
-            <rect x="620" y="490" width="265" height="95" fill="#0b1120" stroke="#334155" strokeWidth="1" />
-            <text x="635" y="515" fill="#64748b" fontSize="9" fontFamily="monospace">PROJECT: MARINA BAY COMMERCIAL TOWER</text>
-            <text x="635" y="532" fill="#94a3b8" fontSize="11" fontWeight="bold" fontFamily="monospace">{drawing.title.toUpperCase()}</text>
-            <text x="635" y="550" fill="#38bdf8" fontSize="10" fontFamily="monospace">DWG NO: {drawing.drawingNumber}  |  REV: {drawing.revision}</text>
-            <text x="635" y="568" fill="#64748b" fontSize="9" fontFamily="monospace">CONSULTANT: ARUP / KPF JV  |  SCALE: {drawing.scaleRatio || '1:100'}</text>
+          {/* Drawing Title Block Frame (Standard CAD Border) */}
+          <rect x="30" y="30" width="940" height="640" fill="none" stroke="#334155" strokeWidth="2" />
+          <rect x="720" y="580" width="250" height="90" fill="#0f172a" stroke="#334155" strokeWidth="1.5" />
+          <text x="735" y="605" fill="#f8fafc" fontSize="13" fontWeight="bold" fontFamily="monospace">
+            {activeSheet.drawingNumber} - {activeSheet.revision}
+          </text>
+          <text x="735" y="625" fill="#94a3b8" fontSize="10" fontFamily="sans-serif">
+            {activeSheet.title.slice(0, 32)}
+          </text>
+          <text x="735" y="645" fill="#64748b" fontSize="9" fontFamily="monospace">
+            SCALE: {activeSheet.scale} | UNITS: {activeSheet.units}
+          </text>
 
-            {/* Structural Grids (A to F, 1 to 7) */}
-            {showGrids && (
-              <g id="cad-grids" stroke="#475569" strokeDasharray="6,4" strokeWidth="0.8">
-                {/* Horizontal Grids A-F */}
-                {[90, 160, 230, 300, 370, 440].map((y, idx) => {
-                  const label = String.fromCharCode(65 + idx);
-                  return (
-                    <g key={label}>
-                      <line x1="60" y1={y} x2="600" y2={y} />
-                      <circle cx="45" cy={y} r="10" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" strokeDasharray="none" />
-                      <text x="45" y={y + 3.5} fill="#38bdf8" fontSize="10" fontWeight="bold" textAnchor="middle" stroke="none">{label}</text>
-                      <circle cx="615" cy={y} r="10" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" strokeDasharray="none" />
-                      <text x="615" y={y + 3.5} fill="#38bdf8" fontSize="10" fontWeight="bold" textAnchor="middle" stroke="none">{label}</text>
-                    </g>
-                  );
-                })}
+          {/* Structural Grid Lines & Bubbles (Grids A, B, C, D & 1, 2, 3, 4) */}
+          <g stroke="#475569" strokeWidth="0.8" strokeDasharray="6,4">
+            {/* Grid 1 to 4 */}
+            <line x1="120" y1="70" x2="120" y2="540" />
+            <line x1="320" y1="70" x2="320" y2="540" />
+            <line x1="520" y1="70" x2="520" y2="540" />
+            <line x1="720" y1="70" x2="720" y2="540" />
 
-                {/* Vertical Grids 1-7 */}
-                {[90, 175, 260, 345, 430, 515, 600].map((x, idx) => {
-                  const label = String(idx + 1);
-                  return (
-                    <g key={label}>
-                      <line x1={x} y1="60" x2={x} y2="470" />
-                      <circle cx={x} cy="45" r="10" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" strokeDasharray="none" />
-                      <text x={x} y="48.5" fill="#38bdf8" fontSize="10" fontWeight="bold" textAnchor="middle" stroke="none">{label}</text>
-                      <circle cx={x} cy="485" r="10" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" strokeDasharray="none" />
-                      <text x={x} y="488.5" fill="#38bdf8" fontSize="10" fontWeight="bold" textAnchor="middle" stroke="none">{label}</text>
-                    </g>
-                  );
-                })}
-              </g>
+            {/* Grid A to D */}
+            <line x1="90" y1="120" x2="750" y2="120" />
+            <line x1="90" y1="260" x2="750" y2="260" />
+            <line x1="90" y1="400" x2="750" y2="400" />
+            <line x1="90" y1="520" x2="750" y2="520" />
+          </g>
+
+          {/* Grid Bubbles */}
+          <g fill="#1e293b" stroke="#64748b" strokeWidth="1">
+            {/* Horizontal Grid Bubbles (1, 2, 3, 4) */}
+            <circle cx="120" cy="70" r="12" />
+            <text x="120" y="74" textAnchor="middle" fill="#38bdf8" fontSize="10" fontWeight="bold">1</text>
+
+            <circle cx="320" cy="70" r="12" />
+            <text x="320" y="74" textAnchor="middle" fill="#38bdf8" fontSize="10" fontWeight="bold">2</text>
+
+            <circle cx="520" cy="70" r="12" />
+            <text x="520" y="74" textAnchor="middle" fill="#38bdf8" fontSize="10" fontWeight="bold">3</text>
+
+            <circle cx="720" cy="70" r="12" />
+            <text x="720" y="74" textAnchor="middle" fill="#38bdf8" fontSize="10" fontWeight="bold">4</text>
+
+            {/* Vertical Grid Bubbles (A, B, C, D) */}
+            <circle cx="90" cy="120" r="12" />
+            <text x="90" y="124" textAnchor="middle" fill="#38bdf8" fontSize="10" fontWeight="bold">A</text>
+
+            <circle cx="90" cy="260" r="12" />
+            <text x="90" y="264" textAnchor="middle" fill="#38bdf8" fontSize="10" fontWeight="bold">B</text>
+
+            <circle cx="90" cy="400" r="12" />
+            <text x="90" y="404" textAnchor="middle" fill="#38bdf8" fontSize="10" fontWeight="bold">C</text>
+
+            <circle cx="90" cy="520" r="12" />
+            <text x="90" y="524" textAnchor="middle" fill="#38bdf8" fontSize="10" fontWeight="bold">D</text>
+          </g>
+
+          {/* Architectural External Walls & Perimeter Layout */}
+          <g fill="url(#brickHatch)" stroke="#38bdf8" strokeWidth="2.5">
+            {/* Top External Wall W-04 along Grid A */}
+            <rect x="120" y="112" width="600" height="16" />
+            {/* Bottom External Wall along Grid D */}
+            <rect x="120" y="512" width="600" height="16" />
+            {/* Left External Wall along Grid 1 */}
+            <rect x="112" y="120" width="16" height="400" />
+            {/* Right External Wall along Grid 4 */}
+            <rect x="712" y="120" width="16" height="400" />
+
+            {/* Internal Partition Walls */}
+            <rect x="316" y="128" width="8" height="270" strokeWidth="1.5" />
+            <rect x="516" y="260" width="8" height="252" strokeWidth="1.5" />
+            <rect x="128" y="256" width="188" height="8" strokeWidth="1.5" />
+          </g>
+
+          {/* Structural Concrete Columns (C1: 600x600mm) at Grid Intersections */}
+          <g fill="url(#concreteHatch)" stroke="#f59e0b" strokeWidth="2">
+            {[120, 320, 520, 720].map((gx) =>
+              [120, 260, 400, 520].map((gy) => (
+                <g key={`col-${gx}-${gy}`}>
+                  {/* Footing Outline in structural foundation sheet */}
+                  {activeSheet.drawingType === 'FOUNDATION' && (
+                    <rect
+                      x={gx - 40}
+                      y={gy - 40}
+                      width="80"
+                      height="80"
+                      fill="#0f2438"
+                      stroke="#0284c7"
+                      strokeWidth="1.2"
+                      strokeDasharray="4,2"
+                    />
+                  )}
+                  {/* Column */}
+                  <rect
+                    x={gx - 12}
+                    y={gy - 12}
+                    width="24"
+                    height="24"
+                    fill="#334155"
+                    stroke="#f59e0b"
+                    className="cursor-pointer hover:stroke-amber-300"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const col = elements.find((el) => el.category === 'COLUMN');
+                      if (col && onSelectElement) onSelectElement(col);
+                    }}
+                  />
+                  <text
+                    x={gx}
+                    y={gy + 4}
+                    textAnchor="middle"
+                    fill="#fbbf24"
+                    fontSize="7"
+                    fontWeight="bold"
+                    fontFamily="monospace"
+                  >
+                    C1
+                  </text>
+                </g>
+              ))
             )}
+          </g>
 
-            {/* Raft & Slab Outline */}
-            <rect x="90" y="90" width="510" height="350" fill="#1e293b" fillOpacity="0.3" stroke="#60a5fa" strokeWidth="1.5" />
-            
-            {/* Beams Layout */}
-            <g stroke="#38bdf8" strokeWidth="1.8" fill="none">
-              {/* Perimeter beams */}
-              <rect x="90" y="90" width="510" height="350" />
-              {/* Internal grid beams */}
-              <line x1="90" y1="160" x2="600" y2="160" />
-              <line x1="90" y1="230" x2="600" y2="230" />
-              <line x1="90" y1="300" x2="600" y2="300" />
-              <line x1="90" y1="370" x2="600" y2="370" />
-              <line x1="175" y1="90" x2="175" y2="440" />
-              <line x1="260" y1="90" x2="260" y2="440" />
-              <line x1="345" y1="90" x2="345" y2="440" />
-              <line x1="430" y1="90" x2="430" y2="440" />
-              <line x1="515" y1="90" x2="515" y2="440" />
+          {/* Door Openings (D-01: 1000x2100mm) */}
+          <g stroke="#10b981" strokeWidth="1.8" fill="none">
+            {/* Door D-01 in Wall W-04 */}
+            <g
+              className="cursor-pointer hover:opacity-80"
+              onClick={(e) => {
+                e.stopPropagation();
+                const door = elements.find((el) => el.category === 'DOOR');
+                if (door && onSelectElement) onSelectElement(door);
+              }}
+            >
+              <rect x="220" y="110" width="30" height="20" fill="#090d16" stroke="none" />
+              <line x1="220" y1="120" x2="250" y2="120" stroke="#10b981" strokeWidth="2" />
+              <path d="M 220 120 A 30 30 0 0 1 250 150" stroke="#10b981" strokeWidth="1" strokeDasharray="3,3" />
+              <text x="235" y="105" textAnchor="middle" fill="#34d399" fontSize="8" fontWeight="bold">
+                D-01
+              </text>
             </g>
 
-            {/* Core Elevator Shaft & Shear Walls */}
+            {/* Internal Doors */}
             <g>
-              <rect x="310" y="200" width="110" height="130" fill="#0f172a" stroke="#f43f5e" strokeWidth="2.5" />
-              {/* Lift Sump / Openings */}
-              <line x1="310" y1="200" x2="420" y2="330" stroke="#f43f5e" strokeWidth="0.8" strokeDasharray="4,4" />
-              <line x1="420" y1="200" x2="310" y2="330" stroke="#f43f5e" strokeWidth="0.8" strokeDasharray="4,4" />
-              <text x="365" y="270" fill="#fda4af" fontSize="10" fontWeight="bold" textAnchor="middle">LIFT CORE SW-01 (300mm)</text>
+              <rect x="312" y="190" width="16" height="26" fill="#090d16" stroke="none" />
+              <line x1="320" y1="190" x2="320" y2="216" stroke="#10b981" strokeWidth="1.5" />
+              <path d="M 320 190 A 26 26 0 0 1 346 216" stroke="#10b981" strokeWidth="1" strokeDasharray="3,3" />
             </g>
+          </g>
 
-            {/* Columns on Grids */}
-            <g fill="#10b981" stroke="#047857" strokeWidth="1">
-              {[90, 175, 260, 430, 515, 600].flatMap((x) =>
-                [90, 160, 230, 300, 370, 440].map((y) => (
-                  <rect key={`${x}-${y}`} x={x - 8} y={y - 8} width="16" height="16" />
-                ))
-              )}
-              {/* Circular entrance columns */}
-              {[175, 260, 345, 430].map((x) => (
-                <circle key={`circ-${x}`} cx={x} cy="440" r="10" fill="#06b6d4" stroke="#0891b2" strokeWidth="1.5" />
-              ))}
-            </g>
+          {/* Dimension Witness Lines & Annotations */}
+          {showDimensionsLayer && (
+            <g stroke="#94a3b8" strokeWidth="0.8" fill="#cbd5e1" fontSize="9" fontFamily="monospace">
+              {/* Overall Length Dimension (12500 mm) */}
+              <line x1="120" y1="90" x2="720" y2="90" stroke="#38bdf8" strokeWidth="1" />
+              <line x1="120" y1="82" x2="120" y2="98" stroke="#38bdf8" />
+              <line x1="720" y1="82" x2="720" y2="98" stroke="#38bdf8" />
+              <text x="420" y="85" textAnchor="middle" fill="#38bdf8" fontWeight="bold">
+                12500 mm (W-04 Gross Length)
+              </text>
 
-            {/* HVAC Duct Overlay if drawing is MEP */}
-            {drawing.discipline === 'HVAC' && (
-              <g stroke="#f59e0b" strokeWidth="4" fill="none" opacity="0.85">
-                <path d="M 120 130 L 560 130 L 560 380 L 120 380" />
-                <rect x="120" y="115" width="440" height="30" fill="#f59e0b" fillOpacity="0.1" stroke="#f59e0b" strokeWidth="1" />
-                <text x="280" y="135" fill="#fde68a" fontSize="10" fontFamily="monospace">SUPPLY AIR DUCT 800x400 (22G)</text>
-              </g>
-            )}
+              {/* Wall Thickness Callout (200mm AAC Block) */}
+              <line x1="280" y1="120" x2="310" y2="155" stroke="#f43f5e" strokeWidth="1" />
+              <circle cx="280" cy="120" r="2.5" fill="#f43f5e" />
+              <rect x="310" y="145" width="130" height="20" fill="#1e1b4b" stroke="#818cf8" rx="3" />
+              <text x="318" y="158" fill="#c7d2fe" fontSize="8.5" fontWeight="bold">
+                200 THK AAC BLOCK [A-101]
+              </text>
 
-            {/* Steel Rafters Overlay if drawing is Steel */}
-            {drawing.discipline === 'Steel' && (
-              <g stroke="#a855f7" strokeWidth="2.5" fill="none">
-                {[120, 190, 260, 330, 400, 470, 540].map((x) => (
-                  <line key={`rafter-${x}`} x1={x} y1="90" x2={x} y2="440" />
-                ))}
-                <text x="330" y="80" fill="#d8b4fe" fontSize="11" fontWeight="bold" textAnchor="middle">UB 457x191x67 MAIN RAFTERS @ 6.0m C/C</text>
-              </g>
-            )}
-
-            {/* Dimension Lines */}
-            {showDimensions && (
-              <g stroke="#94a3b8" strokeWidth="0.8" fill="none">
-                {/* Horizontal overall dimension */}
-                <line x1="90" y1="25" x2="600" y2="25" />
-                <line x1="90" y1="20" x2="90" y2="30" />
-                <line x1="600" y1="20" x2="600" y2="30" />
-                <text x="345" y="20" fill="#cbd5e1" fontSize="10" fontFamily="monospace" textAnchor="middle">51,000 mm (51.00 m)</text>
-
-                {/* Vertical overall dimension */}
-                <line x1="25" y1="90" x2="25" y2="440" />
-                <line x1="20" y1="90" x2="30" y2="90" />
-                <line x1="20" y1="440" x2="30" y2="440" />
-                <text x="20" y="270" fill="#cbd5e1" fontSize="10" fontFamily="monospace" textAnchor="middle" transform="rotate(-90 20 270)">35,000 mm (35.00 m)</text>
-              </g>
-            )}
-
-            {/* Interactive Bounding Boxes for Detected Elements */}
-            {showElements &&
-              drawingElements.map((el) => {
-                if (!el.boundingBox) return null;
-                const isSelected = selectedElementId === el.id;
-                // Convert normalized percentage to SVG pixel coordinates
-                const bx = (el.boundingBox.x / 100) * 900;
-                const by = (el.boundingBox.y / 100) * 600;
-                const bw = (el.boundingBox.width / 100) * 900;
-                const bh = (el.boundingBox.height / 100) * 600;
-
-                return (
-                  <g
-                    key={el.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectElement(el);
-                    }}
-                    className="cursor-pointer group"
-                  >
-                    <rect
-                      x={bx}
-                      y={by}
-                      width={bw}
-                      height={bh}
-                      fill={isSelected ? 'rgba(59, 130, 246, 0.25)' : 'rgba(16, 185, 129, 0.08)'}
-                      stroke={isSelected ? '#3b82f6' : '#10b981'}
-                      strokeWidth={isSelected ? 2.5 : 1.2}
-                      strokeDasharray={isSelected ? 'none' : '4,2'}
-                      rx="3"
-                      className="transition-all duration-150 group-hover:fill-blue-500/20 group-hover:stroke-blue-400"
-                    />
-                    <g transform={`translate(${bx + 4}, ${by + 14})`}>
-                      <rect
-                        x="0"
-                        y="-10"
-                        width={Math.min(bw - 8, el.name.length * 6.5 + 40)}
-                        height="15"
-                        fill="#0f172a"
-                        fillOpacity="0.9"
-                        rx="2"
-                        stroke={isSelected ? '#3b82f6' : '#10b981'}
-                        strokeWidth="0.5"
-                      />
-                      <text
-                        x="4"
-                        y="0"
-                        fill={isSelected ? '#93c5fd' : '#6ee7b7'}
-                        fontSize="9"
-                        fontWeight="bold"
-                        fontFamily="monospace"
-                      >
-                        {el.id} • {el.calculation.netQuantity} {el.calculation.unit}
-                      </text>
-                    </g>
-                  </g>
-                );
-              })}
-
-            {/* Interactive Bounding Boxes for Open Items / Discrepancies */}
-            {showOpenItems &&
-              drawingOpenItems.map((oi) => {
-                if (!oi.boundingBox) return null;
-                const bx = (oi.boundingBox.x / 100) * 900;
-                const by = (oi.boundingBox.y / 100) * 600;
-                const bw = (oi.boundingBox.width / 100) * 900;
-                const bh = (oi.boundingBox.height / 100) * 600;
-
-                return (
-                  <g
-                    key={oi.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onSelectOpenItem) onSelectOpenItem(oi);
-                    }}
-                    className="cursor-pointer group"
-                  >
-                    <rect
-                      x={bx}
-                      y={by}
-                      width={bw}
-                      height={bh}
-                      fill="rgba(245, 158, 11, 0.2)"
-                      stroke="#f59e0b"
-                      strokeWidth="2"
-                      strokeDasharray="5,3"
-                      rx="3"
-                      className="animate-pulse group-hover:stroke-amber-300"
-                    />
-                    <g transform={`translate(${bx + 4}, ${by + 14})`}>
-                      <rect
-                        x="0"
-                        y="-10"
-                        width="110"
-                        height="15"
-                        fill="#451a03"
-                        fillOpacity="0.95"
-                        rx="2"
-                        stroke="#f59e0b"
-                        strokeWidth="0.5"
-                      />
-                      <text
-                        x="4"
-                        y="0"
-                        fill="#fcd34d"
-                        fontSize="9"
-                        fontWeight="bold"
-                        fontFamily="monospace"
-                      >
-                        FLAG: {oi.id} (OPEN)
-                      </text>
-                    </g>
-                  </g>
-                );
-              })}
-
-            {/* Live Box Drawing Feedback */}
-            {currentBox && (
-              <rect
-                x={(currentBox.x / 100) * 900}
-                y={(currentBox.y / 100) * 600}
-                width={(currentBox.width / 100) * 900}
-                height={(currentBox.height / 100) * 600}
-                fill="rgba(245, 158, 11, 0.25)"
-                stroke="#f59e0b"
-                strokeWidth="2"
-                strokeDasharray="4,4"
-              />
-            )}
-
-            {/* Measurement Line Overlay */}
-            {measurePoints && measurePoints.length >= 1 && measurePoints[0] && (
+              {/* Scanned/Blurred Conflict Region on Parapet */}
               <g>
-                <circle cx={measurePoints[0].x} cy={measurePoints[0].y} r="4" fill="#10b981" />
-                {measurePoints.length >= 2 && measurePoints[1] && (
-                  <>
-                    <circle cx={measurePoints[1].x} cy={measurePoints[1].y} r="4" fill="#10b981" />
-                    <line
-                      x1={measurePoints[0].x}
-                      y1={measurePoints[0].y}
-                      x2={measurePoints[1].x}
-                      y2={measurePoints[1].y}
-                      stroke="#10b981"
-                      strokeWidth="2"
-                    />
-                    <rect
-                      x={(measurePoints[0].x + measurePoints[1].x) / 2 - 30}
-                      y={(measurePoints[0].y + measurePoints[1].y) / 2 - 12}
-                      width="60"
-                      height="16"
-                      fill="#064e3b"
-                      rx="3"
-                      stroke="#10b981"
-                      strokeWidth="0.5"
-                    />
-                    <text
-                      x={(measurePoints[0].x + measurePoints[1].x) / 2}
-                      y={(measurePoints[0].y + measurePoints[1].y) / 2}
-                      fill="#a7f3d0"
-                      fontSize="9"
-                      fontWeight="bold"
-                      fontFamily="monospace"
-                      textAnchor="middle"
-                    >
-                      {measuredDistanceM !== null ? `${measuredDistanceM.toFixed(2)}m` : ''}
-                    </text>
-                  </>
-                )}
+                <rect x="700" y="490" width="120" height="40" fill="#450a0a" stroke="#ef4444" strokeDasharray="4,2" rx="4" opacity="0.8" />
+                <text x="760" y="508" textAnchor="middle" fill="#fca5a5" fontSize="8" fontWeight="bold">
+                  ⚠️ OCR CONFLICT / BLUR
+                </text>
+                <text x="760" y="522" textAnchor="middle" fill="#f87171" fontSize="7.5">
+                  Section S-301 shows 230mm
+                </text>
               </g>
-            )}
-          </svg>
+            </g>
+          )}
+
+          {/* Active Highlight Bounding Box Pinpoint */}
+          {highlightRegion && (
+            <g className="animate-pulse">
+              <rect
+                x={(highlightRegion.x / 100) * 1000}
+                y={(highlightRegion.y / 100) * 700}
+                width={(highlightRegion.width / 100) * 1000}
+                height={(highlightRegion.height / 100) * 700}
+                fill="#f59e0b"
+                fillOpacity="0.25"
+                stroke="#f59e0b"
+                strokeWidth="3"
+                rx="4"
+              />
+              <circle
+                cx={(highlightRegion.x / 100) * 1000 + (highlightRegion.width / 100) * 500}
+                cy={(highlightRegion.y / 100) * 700}
+                r="6"
+                fill="#f59e0b"
+              />
+            </g>
+          )}
+
+          {/* Calibration Points & Drawn Line */}
+          {calibrationPoint1 && (
+            <g>
+              <circle cx={calibrationPoint1.x} cy={calibrationPoint1.y} r="7" fill="#f59e0b" stroke="#ffffff" strokeWidth="2" />
+              <text x={calibrationPoint1.x + 10} y={calibrationPoint1.y - 10} fill="#f59e0b" fontSize="10" fontWeight="bold">
+                P1 (0 px)
+              </text>
+            </g>
+          )}
+          {calibrationPoint1 && calibrationPoint2 && (
+            <g>
+              <line
+                x1={calibrationPoint1.x}
+                y1={calibrationPoint1.y}
+                x2={calibrationPoint2.x}
+                y2={calibrationPoint2.y}
+                stroke="#f59e0b"
+                strokeWidth="2.5"
+                strokeDasharray="6,4"
+              />
+              <circle cx={calibrationPoint2.x} cy={calibrationPoint2.y} r="7" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
+              <text x={calibrationPoint2.x + 10} y={calibrationPoint2.y - 10} fill="#10b981" fontSize="10" fontWeight="bold">
+                P2 ({Math.round(Math.hypot(calibrationPoint2.x - calibrationPoint1.x, calibrationPoint2.y - calibrationPoint1.y))} px)
+              </text>
+            </g>
+          )}
+        </svg>
+
+        {/* Bottom Legend Overlay */}
+        <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between pointer-events-none">
+          <div className="flex items-center gap-3 bg-slate-900/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] text-slate-300 pointer-events-auto">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-sm bg-sky-500" />
+              <span>AAC Walls</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
+              <span>RCC Columns</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
+              <span>Openings</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-sm bg-rose-500" />
+              <span>Conflicts / Open Items</span>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/80 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-slate-800 text-[10px] text-slate-400 font-mono">
+            Pan: Drag | Zoom: Scroll / Buttons | Source Pin: Live
+          </div>
         </div>
       </div>
 
-      {/* Sleek Bottom CAD Status & Coordinate Bar */}
-      <div className="h-9 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between px-4 text-[10px] text-slate-400 font-mono shrink-0 select-none z-10">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>VECTOR CAD READY</span>
+      {/* Two-Point Calibration Modal */}
+      {showCalibrationModal && (
+        <div className="absolute inset-0 z-40 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 max-w-sm w-full space-y-4 shadow-2xl">
+            <div className="flex items-center gap-2 text-amber-400">
+              <Ruler className="w-5 h-5" />
+              <h4 className="font-bold text-sm text-white">Calibrate Drawing Scale</h4>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              You selected 2 reference points across{' '}
+              <span className="font-mono text-amber-300 font-bold">
+                {calibrationPoint1 && calibrationPoint2
+                  ? Math.round(Math.hypot(calibrationPoint2.x - calibrationPoint1.x, calibrationPoint2.y - calibrationPoint1.y))
+                  : 0}{' '}
+                pixels
+              </span>
+              . Enter the known real-world dimension:
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-slate-400">Known Real Dimension (mm)</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={knownDistanceInput}
+                  onChange={(e) => setKnownDistanceInput(e.target.value)}
+                  className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-white font-mono text-sm focus:outline-hidden focus:border-amber-500"
+                  placeholder="5000"
+                />
+                <span className="text-xs text-slate-400 font-bold">mm</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => {
+                  setShowCalibrationModal(false);
+                  setIsCalibrating(false);
+                  setCalibrationPoint1(null);
+                  setCalibrationPoint2(null);
+                }}
+                className="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveCalibration}
+                className="px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-sm"
+              >
+                Apply Calibration
+              </button>
+            </div>
           </div>
-          <span>•</span>
-          <span>X: 1450.22 mm</span>
-          <span>Y: 344.08 mm</span>
-          <span>Z: +3.600 m</span>
         </div>
-        <div className="flex items-center gap-3 text-slate-400 font-sans">
-          <span className="hidden sm:inline">Active Layer: Structural Reinforcement</span>
-          <span className="px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/40 text-[9px] font-mono">
-            {drawingElements.length} Takeoff Entities
-          </span>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

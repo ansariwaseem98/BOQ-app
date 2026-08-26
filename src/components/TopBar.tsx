@@ -27,6 +27,7 @@ export type ActiveTab =
   | 'drawings' 
   | 'intelligence'
   | 'takeoff'
+  | 'measurement-engine'
   | 'workspace' 
   | 'steel'
   | 'architectural'
@@ -305,7 +306,19 @@ export const TopBar: React.FC<TopBarProps> = ({
               }`}
             >
               <Calculator className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Quantity Takeoff & Calculations (Phase 4)</span>
+              <span>Quantity Takeoff (Phase 4)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('measurement-engine')}
+              className={`text-xs font-semibold h-full flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'measurement-engine'
+                  ? 'text-indigo-700 border-b-2 border-indigo-600 font-black bg-indigo-50/70 px-2.5 rounded-t'
+                  : 'text-indigo-900 bg-indigo-50/40 hover:bg-indigo-50 font-bold px-2 rounded-t'
+              }`}
+            >
+              <Calculator className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="font-extrabold tracking-tight">CALC ENGINE (Phase 15A)</span>
             </button>
 
             <button
@@ -336,12 +349,12 @@ export const TopBar: React.FC<TopBarProps> = ({
               onClick={() => setActiveTab('architectural')}
               className={`text-xs font-semibold h-full flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === 'architectural'
-                  ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'text-indigo-700 border-b-2 border-indigo-600 font-black bg-indigo-50/70 px-2.5 rounded-t'
+                  : 'text-indigo-900 bg-indigo-50/40 hover:bg-indigo-50 font-bold px-2 rounded-t'
               }`}
             >
-              <Layers className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Architectural & Finishes (Phase 7)</span>
+              <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="font-extrabold tracking-tight">MASONRY & FINISHES (Phase 15C)</span>
             </button>
 
             <button
@@ -360,12 +373,12 @@ export const TopBar: React.FC<TopBarProps> = ({
               onClick={() => setActiveTab('bbs')}
               className={`text-xs font-semibold h-full flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === 'bbs'
-                  ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'text-indigo-700 border-b-2 border-indigo-600 font-black bg-indigo-50/70 px-2.5 rounded-t'
+                  : 'text-indigo-900 bg-indigo-50/40 hover:bg-indigo-50 font-bold px-2 rounded-t'
               }`}
             >
-              <Scale className="w-3.5 h-3.5" />
-              <span>BBS Engine</span>
+              <Scale className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="font-extrabold tracking-tight">RCC & BBS ENGINE (Phase 15B)</span>
             </button>
 
             <button

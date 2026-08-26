@@ -135,17 +135,17 @@ export class TenderExcelExportEngine {
       return [
         b.itemCode,
         b.discipline,
-        b.trade || '',
+        b.elementType || '',
         b.description,
-        b.sourceDrawing || '',
+        b.primaryDrawingNumber || '',
         qty,
         b.unit,
         rate?.directCost || 0,
-        rate?.overheadCost || 0,
-        rate?.profitMarginCost || 0,
+        rate?.overheadAmount || 0,
+        rate?.profitAmount || 0,
         finalRate,
         qty * finalRate,
-        rate?.calculationMethod || 'CALCULATED',
+        rate?.status || 'CALCULATED',
       ];
     });
 

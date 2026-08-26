@@ -36,6 +36,7 @@ interface ProjectDashboardProps {
   onNavigateToDrawings?: () => void;
   onNavigateToIntelligence?: () => void;
   onNavigateToTakeoff?: () => void;
+  onNavigateToMeasurementEngine?: () => void;
   onNavigateToSteel?: () => void;
   onNavigateToArchitectural?: () => void;
   onNavigateToMep?: () => void;
@@ -55,6 +56,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
   onNavigateToDrawings,
   onNavigateToIntelligence,
   onNavigateToTakeoff,
+  onNavigateToMeasurementEngine,
   onNavigateToSteel,
   onNavigateToArchitectural,
   onNavigateToMep,
@@ -374,6 +376,21 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
             </div>
           </div>
 
+          {/* 3B. Professional Measurement & Calculation Engine (Phase 15A) */}
+          <div
+            onClick={onNavigateToMeasurementEngine || onNavigateToTakeoff}
+            className="bg-white border border-indigo-300 rounded-xl p-3.5 shadow-2xs hover:border-indigo-500 hover:shadow-sm transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-100/40 to-transparent"
+          >
+            <div className="flex items-center justify-between text-indigo-800">
+              <span className="text-xs font-extrabold">Calc Engine</span>
+              <span className="text-[10px] font-mono font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded shadow-2xs">Phase 15A</span>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-indigo-950 font-mono">25 Tests</p>
+              <p className="text-[11px] text-indigo-700 font-semibold mt-0.5">Deterministic Math & Trace</p>
+            </div>
+          </div>
+
           {/* 4. Steel & Roof Engine (Phase 6) */}
           <div
             onClick={onNavigateToSteel}
@@ -389,18 +406,18 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
             </div>
           </div>
 
-          {/* 5. Architectural & Finishes Engine (Phase 7) */}
+          {/* 5. Masonry, DPC, Openings & Finishes Engine (Phase 15C) */}
           <div
             onClick={onNavigateToArchitectural}
-            className="bg-white border border-indigo-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-50/30 to-transparent"
+            className="bg-white border border-indigo-300 rounded-xl p-3.5 shadow-2xs hover:border-indigo-500 hover:shadow-sm transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-100/40 to-transparent"
           >
-            <div className="flex items-center justify-between text-indigo-700">
-              <span className="text-xs font-bold">Architectural</span>
-              <span className="text-[10px] font-mono font-bold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">Phase 7</span>
+            <div className="flex items-center justify-between text-indigo-800">
+              <span className="text-xs font-extrabold">Masonry & Finishes</span>
+              <span className="text-[10px] font-mono font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded shadow-2xs">Phase 15C</span>
             </div>
             <div>
-              <p className="text-2xl font-black text-indigo-950 font-mono">Active</p>
-              <p className="text-[11px] text-indigo-600 mt-0.5">Masonry, DPC & finishes</p>
+              <p className="text-2xl font-black text-indigo-950 font-mono">16 Schedules</p>
+              <p className="text-[11px] text-indigo-700 font-semibold mt-0.5">DPC, Plaster, Paint, Zero Guess</p>
             </div>
           </div>
 
@@ -419,18 +436,18 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
             </div>
           </div>
 
-          {/* 5. BBS Rebar */}
+          {/* 7. RCC & BBS Rebar Engine (Phase 15B) */}
           <div
             onClick={onNavigateToBbs}
-            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+            className="bg-white border border-indigo-300 rounded-xl p-3.5 shadow-2xs hover:border-indigo-500 hover:shadow-sm transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-100/30 to-transparent"
           >
-            <div className="flex items-center justify-between text-slate-500">
-              <span className="text-xs font-semibold">BBS Rebar</span>
-              <Activity className="w-4 h-4 text-indigo-600" />
+            <div className="flex items-center justify-between text-indigo-800">
+              <span className="text-xs font-extrabold">BBS & RCC</span>
+              <span className="text-[10px] font-mono font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded shadow-2xs">Phase 15B</span>
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 font-mono">Phase 5</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Bar bending schedule</p>
+              <p className="text-2xl font-black text-indigo-950 font-mono">IS 456 / BS</p>
+              <p className="text-[11px] text-indigo-700 font-semibold mt-0.5">d²/162 Core & Shapes</p>
             </div>
           </div>
 

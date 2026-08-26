@@ -1,6 +1,6 @@
 /**
  * Deterministic Structural Steel Section Database
- * Standards: BS 4-1, EN 10365, EN 10210/10219, AISC 15th Ed, AS/NZS
+ * Standards: BS 4-1, EN 10365, EN 10210/10219, IS 808 (ISMB, ISMC, ISA), AISC 15th Ed, AS/NZS
  * 
  * ZERO GUESSWORK: If a section is not in the database and not confirmed by user,
  * it returns null to trigger an Open Item blocker.
@@ -9,7 +9,212 @@
 import { SteelSectionItem, SteelSectionType } from '../types';
 
 export const MASTER_STEEL_SECTIONS: SteelSectionItem[] = [
-  // Universal Beams (UB) - BS 4-1 / EN 10365
+  // =========================================================================
+  // 1. Indian Standard Medium Beams (ISMB) - IS 808
+  // =========================================================================
+  {
+    sectionId: 'ISMB-600',
+    designation: 'ISMB 600',
+    type: 'ISMB' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 122.6,
+    depthMm: 600.0,
+    widthMm: 210.0,
+    webThicknessMm: 12.0,
+    flangeThicknessMm: 20.8,
+    areaCm2: 156.0,
+    ixCm4: 91800,
+    iyCm4: 2650,
+    source: 'SP 6(1) / IS 808 Dimensions & Properties',
+  },
+  {
+    sectionId: 'ISMB-500',
+    designation: 'ISMB 500',
+    type: 'ISMB' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 86.9,
+    depthMm: 500.0,
+    widthMm: 180.0,
+    webThicknessMm: 10.2,
+    flangeThicknessMm: 17.2,
+    areaCm2: 111.0,
+    ixCm4: 45200,
+    iyCm4: 1370,
+    source: 'SP 6(1) / IS 808',
+  },
+  {
+    sectionId: 'ISMB-450',
+    designation: 'ISMB 450',
+    type: 'ISMB' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 72.4,
+    depthMm: 450.0,
+    widthMm: 150.0,
+    webThicknessMm: 9.4,
+    flangeThicknessMm: 17.4,
+    areaCm2: 92.2,
+    ixCm4: 30400,
+    iyCm4: 834,
+    source: 'SP 6(1) / IS 808',
+  },
+  {
+    sectionId: 'ISMB-400',
+    designation: 'ISMB 400',
+    type: 'ISMB' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 61.6,
+    depthMm: 400.0,
+    widthMm: 140.0,
+    webThicknessMm: 8.9,
+    flangeThicknessMm: 16.0,
+    areaCm2: 78.4,
+    ixCm4: 20500,
+    iyCm4: 622,
+    source: 'SP 6(1) / IS 808',
+  },
+  {
+    sectionId: 'ISMB-350',
+    designation: 'ISMB 350',
+    type: 'ISMB' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 52.4,
+    depthMm: 350.0,
+    widthMm: 140.0,
+    webThicknessMm: 8.1,
+    flangeThicknessMm: 14.2,
+    areaCm2: 66.7,
+    ixCm4: 13600,
+    iyCm4: 538,
+    source: 'SP 6(1) / IS 808',
+  },
+  {
+    sectionId: 'ISMB-300',
+    designation: 'ISMB 300',
+    type: 'ISMB' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 44.2,
+    depthMm: 300.0,
+    widthMm: 140.0,
+    webThicknessMm: 7.5,
+    flangeThicknessMm: 12.4,
+    areaCm2: 56.3,
+    ixCm4: 8600,
+    iyCm4: 454,
+    source: 'SP 6(1) / IS 808',
+  },
+  {
+    sectionId: 'ISMB-250',
+    designation: 'ISMB 250',
+    type: 'ISMB' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 37.3,
+    depthMm: 250.0,
+    widthMm: 125.0,
+    webThicknessMm: 6.9,
+    flangeThicknessMm: 12.5,
+    areaCm2: 47.5,
+    ixCm4: 5130,
+    iyCm4: 335,
+    source: 'SP 6(1) / IS 808',
+  },
+  {
+    sectionId: 'ISMB-200',
+    designation: 'ISMB 200',
+    type: 'ISMB' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 25.4,
+    depthMm: 200.0,
+    widthMm: 100.0,
+    webThicknessMm: 5.7,
+    flangeThicknessMm: 10.0,
+    areaCm2: 32.3,
+    ixCm4: 2235,
+    iyCm4: 150,
+    source: 'SP 6(1) / IS 808',
+  },
+
+  // =========================================================================
+  // 2. Indian Standard Medium Channels (ISMC) - IS 808
+  // =========================================================================
+  {
+    sectionId: 'ISMC-400',
+    designation: 'ISMC 400',
+    type: 'ISMC' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 50.1,
+    depthMm: 400.0,
+    widthMm: 100.0,
+    webThicknessMm: 8.6,
+    flangeThicknessMm: 15.3,
+    areaCm2: 63.8,
+    ixCm4: 15200,
+    iyCm4: 505,
+    source: 'SP 6(1) / IS 808',
+  },
+  {
+    sectionId: 'ISMC-300',
+    designation: 'ISMC 300',
+    type: 'ISMC' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 35.8,
+    depthMm: 300.0,
+    widthMm: 90.0,
+    webThicknessMm: 7.6,
+    flangeThicknessMm: 13.6,
+    areaCm2: 45.6,
+    ixCm4: 6360,
+    iyCm4: 311,
+    source: 'SP 6(1) / IS 808',
+  },
+  {
+    sectionId: 'ISMC-250',
+    designation: 'ISMC 250',
+    type: 'ISMC' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 30.4,
+    depthMm: 250.0,
+    widthMm: 80.0,
+    webThicknessMm: 7.1,
+    flangeThicknessMm: 14.1,
+    areaCm2: 38.7,
+    ixCm4: 3820,
+    iyCm4: 219,
+    source: 'SP 6(1) / IS 808',
+  },
+  {
+    sectionId: 'ISMC-200',
+    designation: 'ISMC 200',
+    type: 'ISMC' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 22.1,
+    depthMm: 200.0,
+    widthMm: 75.0,
+    webThicknessMm: 6.1,
+    flangeThicknessMm: 11.4,
+    areaCm2: 28.2,
+    ixCm4: 1820,
+    iyCm4: 140,
+    source: 'SP 6(1) / IS 808',
+  },
+  {
+    sectionId: 'ISMC-150',
+    designation: 'ISMC 150',
+    type: 'ISMC' as SteelSectionType,
+    standard: 'IS 808',
+    massKgM: 16.4,
+    depthMm: 150.0,
+    widthMm: 75.0,
+    webThicknessMm: 5.4,
+    flangeThicknessMm: 9.0,
+    areaCm2: 20.9,
+    ixCm4: 779,
+    iyCm4: 102,
+    source: 'SP 6(1) / IS 808',
+  },
+
+  // =========================================================================
+  // 3. Universal Beams (UB) - BS 4-1 / EN 10365
+  // =========================================================================
   {
     sectionId: 'UB-914x419x388',
     designation: 'UB 914x419x388',
@@ -23,7 +228,7 @@ export const MASTER_STEEL_SECTIONS: SteelSectionItem[] = [
     areaCm2: 494.0,
     ixCm4: 719600,
     iyCm4: 45710,
-    source: 'Steel Construction Institute (SCI) Blue Book',
+    source: 'SCI Blue Book',
   },
   {
     sectionId: 'UB-914x305x224',
@@ -161,7 +366,9 @@ export const MASTER_STEEL_SECTIONS: SteelSectionItem[] = [
     source: 'SCI Blue Book',
   },
 
-  // Universal Columns (UC) - BS 4-1 / EN 10365
+  // =========================================================================
+  // 4. Universal Columns (UC) - BS 4-1 / EN 10365
+  // =========================================================================
   {
     sectionId: 'UC-356x406x287',
     designation: 'UC 356x406x287',
@@ -253,7 +460,9 @@ export const MASTER_STEEL_SECTIONS: SteelSectionItem[] = [
     source: 'SCI Blue Book',
   },
 
-  // European I-Beams (IPE) - EN 10034
+  // =========================================================================
+  // 5. European Sections (IPE, HEA, HEB, HEM) - EN 10034
+  // =========================================================================
   {
     sectionId: 'IPE-600',
     designation: 'IPE 600',
@@ -314,8 +523,6 @@ export const MASTER_STEEL_SECTIONS: SteelSectionItem[] = [
     iyCm4: 284,
     source: 'ArcelorMittal Catalog',
   },
-
-  // Wide Flange Beams (HEA / HEB) - EN 10034
   {
     sectionId: 'HEA-300',
     designation: 'HEA 300',
@@ -392,7 +599,9 @@ export const MASTER_STEEL_SECTIONS: SteelSectionItem[] = [
     source: 'ArcelorMittal Catalog',
   },
 
-  // Hollow Structural Sections (SHS & RHS) - EN 10210 / EN 10219
+  // =========================================================================
+  // 6. Hollow Structural Sections (SHS, RHS, CHS) - EN 10210 / EN 10219
+  // =========================================================================
   {
     sectionId: 'SHS-200x200x8',
     designation: 'SHS 200x200x8',
@@ -499,12 +708,14 @@ export const MASTER_STEEL_SECTIONS: SteelSectionItem[] = [
     source: 'Tata Steel Tubes Catalog',
   },
 
-  // Equal & Unequal Angles - EN 10056-1
+  // =========================================================================
+  // 7. Structural Angles (L / ISA) - BS EN 10056-1 / IS 808
+  // =========================================================================
   {
     sectionId: 'L-150x150x12',
     designation: 'L 150x150x12',
     type: 'Angle',
-    standard: 'BS EN 10056-1',
+    standard: 'BS EN 10056-1 / IS 808',
     massKgM: 27.3,
     depthMm: 150.0,
     widthMm: 150.0,
@@ -519,7 +730,7 @@ export const MASTER_STEEL_SECTIONS: SteelSectionItem[] = [
     sectionId: 'L-100x100x10',
     designation: 'L 100x100x10',
     type: 'Angle',
-    standard: 'BS EN 10056-1',
+    standard: 'BS EN 10056-1 / IS 808',
     massKgM: 15.0,
     depthMm: 100.0,
     widthMm: 100.0,
@@ -534,7 +745,7 @@ export const MASTER_STEEL_SECTIONS: SteelSectionItem[] = [
     sectionId: 'L-75x75x6',
     designation: 'L 75x75x6',
     type: 'Angle',
-    standard: 'BS EN 10056-1',
+    standard: 'BS EN 10056-1 / IS 808',
     massKgM: 6.85,
     depthMm: 75.0,
     widthMm: 75.0,
@@ -546,69 +757,35 @@ export const MASTER_STEEL_SECTIONS: SteelSectionItem[] = [
     source: 'SCI Blue Book',
   },
   {
-    sectionId: 'L-150x90x10',
-    designation: 'L 150x90x10',
+    sectionId: 'ISA-75x75x6',
+    designation: 'ISA 75x75x6',
     type: 'Angle',
-    standard: 'BS EN 10056-1',
-    massKgM: 18.2,
-    depthMm: 150.0,
-    widthMm: 90.0,
-    webThicknessMm: 10.0,
-    flangeThicknessMm: 10.0,
-    areaCm2: 23.2,
-    ixCm4: 531,
-    iyCm4: 147,
-    source: 'SCI Blue Book',
-  },
-
-  // Parallel Flange Channels (PFC) - BS 4-1
-  {
-    sectionId: 'PFC-300x100x46',
-    designation: 'PFC 300x100x46',
-    type: 'Channel',
-    standard: 'BS 4-1 / EN 10365',
-    massKgM: 45.5,
-    depthMm: 300.0,
-    widthMm: 100.0,
-    webThicknessMm: 9.0,
-    flangeThicknessMm: 16.5,
-    areaCm2: 58.0,
-    ixCm4: 8225,
-    iyCm4: 556,
-    source: 'SCI Blue Book',
-  },
-  {
-    sectionId: 'PFC-200x75x23',
-    designation: 'PFC 200x75x23',
-    type: 'Channel',
-    standard: 'BS 4-1 / EN 10365',
-    massKgM: 23.4,
-    depthMm: 200.0,
+    standard: 'IS 808',
+    massKgM: 6.85,
+    depthMm: 75.0,
     widthMm: 75.0,
     webThicknessMm: 6.0,
-    flangeThicknessMm: 12.5,
-    areaCm2: 29.9,
-    ixCm4: 1948,
-    iyCm4: 160,
-    source: 'SCI Blue Book',
+    flangeThicknessMm: 6.0,
+    areaCm2: 8.73,
+    source: 'IS 808 Dimensions & Properties',
   },
   {
-    sectionId: 'PFC-150x75x18',
-    designation: 'PFC 150x75x18',
-    type: 'Channel',
-    standard: 'BS 4-1 / EN 10365',
-    massKgM: 17.9,
-    depthMm: 150.0,
-    widthMm: 75.0,
-    webThicknessMm: 5.5,
-    flangeThicknessMm: 10.0,
-    areaCm2: 22.8,
-    ixCm4: 861,
-    iyCm4: 119,
-    source: 'SCI Blue Book',
+    sectionId: 'ISA-50x50x6',
+    designation: 'ISA 50x50x6',
+    type: 'Angle',
+    standard: 'IS 808',
+    massKgM: 4.5,
+    depthMm: 50.0,
+    widthMm: 50.0,
+    webThicknessMm: 6.0,
+    flangeThicknessMm: 6.0,
+    areaCm2: 5.68,
+    source: 'IS 808',
   },
 
-  // Cold-Formed Z-Purlins & C-Purlins / Girts (Kingspan / Metsec / Lysaght)
+  // =========================================================================
+  // 8. Cold-Formed Z-Purlins & C-Girts
+  // =========================================================================
   {
     sectionId: 'Z-Purlin-300x75x3.0',
     designation: 'Z300x75x3.0',
@@ -739,21 +916,20 @@ export function getAllAvailableSections(): SteelSectionItem[] {
 
 /**
  * Deterministic Section Lookup:
- * Matches normalized designation e.g. "UB 610x229x101", "UB 610 X 229 X 101", "Z200@1500"
+ * Matches normalized designation e.g. "UB 610x229x101", "ISMB 450", "Z200x65x2.0"
  * Returns null if not found (strictly NO FABRICATION).
  */
 export function lookupSteelSection(designation: string): SteelSectionItem | null {
   if (!designation || !designation.trim()) return null;
   const clean = designation.replace(/\s+/g, ' ').trim().toLowerCase();
 
-  // Try direct match
   const all = getAllAvailableSections();
   const directMatch = all.find(
     (s) => s.designation.toLowerCase() === clean || s.sectionId.toLowerCase() === clean
   );
   if (directMatch) return directMatch;
 
-  // Normalized matching (e.g. without spaces, case-insensitive)
+  // Normalized matching (e.g. without spaces, hyphens, case-insensitive)
   const normClean = clean.replace(/[\s\-_x*×]/g, '');
   const match = all.find((s) => {
     const sNorm = s.designation.toLowerCase().replace(/[\s\-_x*×]/g, '');

@@ -13,7 +13,7 @@ import {
   AlertOctagon,
   Lock,
 } from 'lucide-react';
-import { TenderQaReport, TenderQaPillarCheck } from '../types/tender';
+import { TenderQaReport, TenderQaPillarStatus } from '../types/tender';
 
 interface TenderQaModalProps {
   isOpen: boolean;
@@ -123,7 +123,7 @@ export const TenderQaModal: React.FC<TenderQaModalProps> = ({
 
           {/* 8 Pillars Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(Object.entries(qaReport.pillars) as [string, TenderQaPillarCheck][]).map(([key, pillar]) => {
+            {(Object.entries(qaReport.pillars) as [string, TenderQaPillarStatus][]).map(([key, pillar]) => {
               const isPassed = pillar.status === 'PASSED';
               const isWarning = pillar.status === 'WARNING';
               return (

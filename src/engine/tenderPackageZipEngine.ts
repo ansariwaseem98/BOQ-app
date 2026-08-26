@@ -157,7 +157,7 @@ ${boqItems.map((b) => {
   const rate = rateAnalyses.find((r) => r.boqItemId === b.id || r.itemCode === b.itemCode);
   const rVal = rate?.finalRate || 0;
   const amt = (b.finalQuantity || 0) * rVal;
-  return `| ${b.itemCode} | ${b.discipline} | ${b.description.replace(/\|/g, '-')} | ${b.sourceDrawing || '-'} | ${b.finalQuantity} | ${b.unit} | $${rVal.toFixed(2)} | $${amt.toFixed(2)} |`;
+  return `| ${b.itemCode} | ${b.discipline} | ${b.description.replace(/\|/g, '-')} | ${b.primaryDrawingNumber || '-'} | ${b.finalQuantity} | ${b.unit} | $${rVal.toFixed(2)} | $${amt.toFixed(2)} |`;
 }).join('\n')}
 `;
     addFileToZip('02_BOQ', 'Priced Bill of Quantities & Measurement Schedules', '02_Priced_BOQ_Schedule.md', 'text/markdown', boqMarkdown);
@@ -196,8 +196,8 @@ ${drawings.map((d) => `| ${d.drawingNo} | ${d.title} | ${d.discipline} | ${d.rev
     // 06_RATE_ANALYSIS
     const rateAnalysisText = `# RATE ANALYSIS & UNIT COST BUILD-UP REGISTER
 **Pricing Scenario:** ${activeScenario.name} (${activeScenario.description})  
-**Overhead Markup:** ${activeScenario.overheadMarkupPercent}%  
-**Profit Margin:** ${activeScenario.profitMarginPercent}%  
+**Overhead Markup:** ${activeScenario.overheadPercent}%  
+**Profit Margin:** ${activeScenario.profitPercent}%  
 **Direct Cost Total:** $${commercialSummary.estimatedDirectCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}  
 **Overhead Total:** $${commercialSummary.estimatedOverheadCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}  
 `;

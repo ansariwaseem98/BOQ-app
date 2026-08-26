@@ -31,16 +31,20 @@ import { WorkspaceLayout } from './components/WorkspaceLayout';
 import { DrawingManager } from './components/DrawingManager';
 import { BoqTable } from './components/BoqTable';
 import { BbsViewer } from './components/BbsViewer';
+import { RccBbsEngineWorkspace } from './components/RccBbsEngineWorkspace';
 import { ClarificationWorkspace } from './components/ClarificationWorkspace';
 import { RevisionManager } from './components/RevisionManager';
 import { DrawingAnalysisWorkspace } from './components/DrawingAnalysisWorkspace';
 import { TakeoffWorkspace } from './components/TakeoffWorkspace';
 import { SteelRoofWorkspace } from './components/SteelRoofWorkspace';
 import { ArchitecturalTakeoffWorkspace } from './components/ArchitecturalTakeoffWorkspace';
+import { MasonryFinishesEngineWorkspace } from './components/MasonryFinishesEngineWorkspace';
 import { MEPTakeoffWorkspace } from './components/MEPTakeoffWorkspace';
 import { UnifiedBoqWorkspace } from './components/UnifiedBoqWorkspace';
 import { RateAnalysisWorkspace } from './components/RateAnalysisWorkspace';
 import { TenderWorkspace } from './components/TenderWorkspace';
+import { DrawingIntelligenceWorkspace } from './components/DrawingIntelligenceWorkspace';
+import { MeasurementEngineWorkspace } from './components/MeasurementEngineWorkspace';
 import { RateAnalysisEngine } from './engine/rateAnalysisEngine';
 import { INITIAL_PRICING_SCENARIOS } from './data/rateDatabaseInitialData';
 import { DocumentStorageService } from './services/documentStorage';
@@ -564,6 +568,7 @@ export function App() {
             onNavigateToDrawings={() => setActiveTab('drawings')}
             onNavigateToIntelligence={() => setActiveTab('intelligence')}
             onNavigateToTakeoff={() => setActiveTab('takeoff')}
+            onNavigateToMeasurementEngine={() => setActiveTab('measurement-engine')}
             onNavigateToSteel={() => setActiveTab('steel')}
             onNavigateToArchitectural={() => setActiveTab('architectural')}
             onNavigateToMep={() => setActiveTab('mep')}
@@ -595,15 +600,9 @@ export function App() {
           />
         )}
 
-        {/* Phase 3: Drawing Intelligence & Analysis Engine */}
+        {/* Phase 14A: Drawing Intelligence Core */}
         {activeTab === 'intelligence' && activeProject && (
-          <DrawingAnalysisWorkspace
-            project={activeProject}
-            documents={projectDocuments}
-            initialDocumentId={analysisTargetDocId}
-            onClose={() => setActiveTab('drawings')}
-            onNavigateToDocumentManager={() => setActiveTab('drawings')}
-          />
+          <DrawingIntelligenceWorkspace />
         )}
 
         {/* Phase 4: Engineering Quantity Takeoff & Calculation Engine */}
@@ -616,6 +615,21 @@ export function App() {
               setActiveTab('intelligence');
             }}
             onNavigateToBoq={() => setActiveTab('boq')}
+          />
+        )}
+
+        {/* Phase 15A: Professional Measurement & Calculation Engine */}
+        {activeTab === 'measurement-engine' && activeProject && (
+          <MeasurementEngineWorkspace
+            onViewDrawing={(dwgNum) => {
+              const match = drawings.find((d) => d.drawingNumber === dwgNum || d.id === dwgNum);
+              if (match) {
+                setActiveDrawingId(match.id);
+                setActiveTab('workspace');
+              } else {
+                setActiveTab('intelligence');
+              }
+            }}
           />
         )}
 
@@ -654,9 +668,11 @@ export function App() {
           />
         )}
 
-        {/* Phase 7: Architectural, Masonry, DPC & Finishes Takeoff Engine */}
+        {/* Phase 15C: Architectural, Masonry, DPC, Openings & Finishes Takeoff Engine */}
         {activeTab === 'architectural' && activeProject && (
-          <ArchitecturalTakeoffWorkspace />
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <MasonryFinishesEngineWorkspace />
+          </div>
         )}
 
         {/* Phase 8: Complete MEP Quantity Takeoff Engine */}
@@ -664,17 +680,18 @@ export function App() {
           <MEPTakeoffWorkspace onBackToDashboard={() => setActiveTab('dashboard')} />
         )}
 
-        {/* BBS Viewer */}
+        {/* Phase 15B: RCC + Reinforcement + Professional BBS Engine */}
         {activeTab === 'bbs' && activeProject && (
           <div className="p-6 max-w-7xl mx-auto w-full">
-            <BbsViewer
-              projectId={activeProject.id}
-              onNavigateToDrawing={(docId, page) => {
-                setAnalysisTargetDocId(docId);
-                setActiveTab('intelligence');
-              }}
-              onOpenItemCreate={(newItem) => {
-                setOpenItems((prev) => [newItem, ...prev]);
+            <RccBbsEngineWorkspace
+              onNavigateToDrawing={(dwgNum, page) => {
+                const match = drawings.find((d) => d.drawingNumber === dwgNum || d.id === dwgNum);
+                if (match) {
+                  setActiveDrawingId(match.id);
+                  setActiveTab('workspace');
+                } else {
+                  setActiveTab('intelligence');
+                }
               }}
             />
           </div>

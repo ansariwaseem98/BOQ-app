@@ -305,7 +305,7 @@ export class TenderTestSuite {
 
     // Test 12: Tender Pricing Scenarios Integration
     tStart = performance.now();
-    const hasActiveScenario = Boolean(activeScenario && activeScenario.name && activeScenario.overheadMarkupPercent >= 0);
+    const hasActiveScenario = Boolean(activeScenario && activeScenario.name && activeScenario.overheadPercent >= 0);
     addResult(
       12,
       'Pricing Scenarios Dynamic Integration',
@@ -313,7 +313,7 @@ export class TenderTestSuite {
       hasActiveScenario,
       `Active Scenario: ${activeScenario?.name}`,
       'Selected scenario sets markups and drives commercial rates',
-      `Scenario: ${activeScenario?.name} (OH: ${activeScenario?.overheadMarkupPercent}%, Profit: ${activeScenario?.profitMarginPercent}%)`,
+      `Scenario: ${activeScenario?.name} (OH: ${activeScenario?.overheadPercent}%, Profit: ${activeScenario?.profitPercent}%)`,
       performance.now() - tStart,
       'Links rate analysis scenario to tender summary.'
     );

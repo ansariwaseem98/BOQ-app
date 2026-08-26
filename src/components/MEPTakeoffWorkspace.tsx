@@ -22,6 +22,8 @@ import { MepConflictModal } from './MepConflictModal';
 import { MepOpenItemModal } from './MepOpenItemModal';
 import { MepTestSuiteModal } from './MepTestSuiteModal';
 import { MepRevisionModal } from './MepRevisionModal';
+import { MEPExcelExportEngine } from '../engine/mepExcelExport';
+import { MEPEngine } from '../engine/mepEngine';
 
 interface MEPTakeoffWorkspaceProps {
   onBackToDashboard?: () => void;
@@ -244,6 +246,23 @@ export const MEPTakeoffWorkspace: React.FC<MEPTakeoffWorkspaceProps> = ({
     showToast('MEP BOQ Schedule exported to CSV.');
   };
 
+  const handleExportExcel = () => {
+    const summary = MEPEngine.calculateSummary(elements, openItems, conflicts);
+    MEPExcelExportEngine.generateMEPWorkbook({
+      projectName: 'Industrial Warehouse & Tech Center',
+      projectCode: 'MEP-IND-2026',
+      revision: 'Rev 01 (Tender)',
+      elements,
+      openItems,
+      conflicts,
+      revisions,
+      reconciliations,
+      crossChecks,
+      summary,
+    });
+    showToast('Enterprise Multi-Tab MEP Excel Workbook generated.');
+  };
+
   const disciplinesList: (MEPDiscipline | 'ALL')[] = [
     'ALL',
     'Electrical',
@@ -284,12 +303,12 @@ export const MEPTakeoffWorkspace: React.FC<MEPTakeoffWorkspaceProps> = ({
             )}
             <div className="flex items-center space-x-2.5">
               <span className="px-2.5 py-1 bg-amber-500 text-slate-950 font-mono font-black text-xs rounded-md uppercase tracking-wider">
-                Phase 8
+                Phase 15E
               </span>
               <h1 className="text-lg font-black font-mono tracking-tight text-white flex items-center gap-2">
-                MEP QUANTITY TAKEOFF ENGINE
+                INDUSTRIAL MEP QUANTITY ENGINE
                 <span className="text-xs font-normal text-slate-400 font-sans hidden sm:inline">
-                  (Electrical, HVAC, Plumbing, Fire, ELV)
+                  (Electrical, HVAC, Plumbing, Fire, ELV, Supports)
                 </span>
               </h1>
             </div>
@@ -304,7 +323,7 @@ export const MEPTakeoffWorkspace: React.FC<MEPTakeoffWorkspaceProps> = ({
               <svg className="w-4 h-4 text-emerald-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Run 40-Rule Test Suite
+              Verification Suite (40 Rules &amp; 10 Milestones)
             </button>
 
             <button
@@ -318,13 +337,24 @@ export const MEPTakeoffWorkspace: React.FC<MEPTakeoffWorkspaceProps> = ({
             </button>
 
             <button
+              onClick={handleExportExcel}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
+              title="Generate Multi-Tab Excel Spreadsheet with 12 Sheets"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export Multi-Tab Excel
+            </button>
+
+            <button
               onClick={handleExportCSV}
-              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-bold rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
+              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-mono font-bold rounded-lg transition-colors flex items-center gap-1.5"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Export BOQ CSV
+              CSV
             </button>
           </div>
         </div>
