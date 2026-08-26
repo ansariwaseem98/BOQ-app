@@ -40,6 +40,9 @@ import { ArchitecturalTakeoffWorkspace } from './components/ArchitecturalTakeoff
 import { MEPTakeoffWorkspace } from './components/MEPTakeoffWorkspace';
 import { UnifiedBoqWorkspace } from './components/UnifiedBoqWorkspace';
 import { RateAnalysisWorkspace } from './components/RateAnalysisWorkspace';
+import { TenderWorkspace } from './components/TenderWorkspace';
+import { RateAnalysisEngine } from './engine/rateAnalysisEngine';
+import { INITIAL_PRICING_SCENARIOS } from './data/rateDatabaseInitialData';
 import { DocumentStorageService } from './services/documentStorage';
 import { ShowMeWhyModal } from './components/ShowMeWhyModal';
 import { ValidationAlertsModal } from './components/ValidationAlertsModal';
@@ -565,6 +568,8 @@ export function App() {
             onNavigateToArchitectural={() => setActiveTab('architectural')}
             onNavigateToMep={() => setActiveTab('mep')}
             onNavigateToBoq={() => setActiveTab('boq')}
+            onNavigateToRateAnalysis={() => setActiveTab('rate-analysis')}
+            onNavigateToTender={() => setActiveTab('tender')}
             onNavigateToBbs={() => setActiveTab('bbs')}
             onNavigateToOpenItems={() => setActiveTab('open-items')}
           />
@@ -687,6 +692,18 @@ export function App() {
           <RateAnalysisWorkspace
             project={activeProject.project}
             unifiedBoqItems={INITIAL_UNIFIED_BOQ_ITEMS}
+          />
+        )}
+
+        {/* Phase 13: Professional Tender Management & Final Bid Submission Package */}
+        {activeTab === 'tender' && activeProject && (
+          <TenderWorkspace
+            project={activeProject}
+            unifiedBoqItems={INITIAL_UNIFIED_BOQ_ITEMS}
+            rateAnalyses={RateAnalysisEngine.initializeRateAnalyses(INITIAL_UNIFIED_BOQ_ITEMS)}
+            activeScenario={INITIAL_PRICING_SCENARIOS[0]}
+            onNavigateToBoq={() => setActiveTab('boq')}
+            onNavigateToRateAnalysis={() => setActiveTab('rate-analysis')}
           />
         )}
 

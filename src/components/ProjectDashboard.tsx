@@ -40,6 +40,8 @@ interface ProjectDashboardProps {
   onNavigateToArchitectural?: () => void;
   onNavigateToMep?: () => void;
   onNavigateToBoq?: () => void;
+  onNavigateToRateAnalysis?: () => void;
+  onNavigateToTender?: () => void;
   onNavigateToBbs?: () => void;
   onNavigateToOpenItems?: () => void;
 }
@@ -57,6 +59,8 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
   onNavigateToArchitectural,
   onNavigateToMep,
   onNavigateToBoq,
+  onNavigateToRateAnalysis,
+  onNavigateToTender,
   onNavigateToBbs,
   onNavigateToOpenItems,
 }) => {
@@ -455,8 +459,38 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
               <FileSpreadsheet className="w-4 h-4 text-indigo-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 font-mono">0</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Ready for takeoff</p>
+              <p className="text-2xl font-black text-slate-900 font-mono">Phase 9</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Unified measured schedule</p>
+            </div>
+          </div>
+
+          {/* 8. Rate Analysis Engine (Phase 12) */}
+          <div
+            onClick={onNavigateToRateAnalysis}
+            className="bg-white border border-emerald-200 rounded-xl p-3.5 shadow-2xs hover:border-emerald-400 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-emerald-50/40 to-transparent"
+          >
+            <div className="flex items-center justify-between text-emerald-800">
+              <span className="text-xs font-bold">Rate Analysis & Pricing</span>
+              <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded">Phase 12</span>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-emerald-950 font-mono">Build-up</p>
+              <p className="text-[11px] text-emerald-700 mt-0.5">Direct cost, overhead & profit</p>
+            </div>
+          </div>
+
+          {/* 9. Tender Management (Phase 13) */}
+          <div
+            onClick={onNavigateToTender}
+            className="bg-white border border-indigo-300 rounded-xl p-3.5 shadow-2xs hover:border-indigo-500 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-50/60 to-transparent"
+          >
+            <div className="flex items-center justify-between text-indigo-900">
+              <span className="text-xs font-black">Tender & Bid Submission</span>
+              <span className="text-[10px] font-mono font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded">Phase 13</span>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-indigo-950 font-mono">Package</p>
+              <p className="text-[11px] text-indigo-700 mt-0.5">Reconciliation, QA & 13-folder ZIP</p>
             </div>
           </div>
         </div>

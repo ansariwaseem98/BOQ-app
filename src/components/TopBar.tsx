@@ -17,6 +17,7 @@ import {
   Zap,
   ShieldCheck,
   DollarSign,
+  Briefcase,
 } from 'lucide-react';
 import { ProjectRecord } from '../types';
 
@@ -32,6 +33,7 @@ export type ActiveTab =
   | 'mep'
   | 'boq' 
   | 'rate-analysis'
+  | 'tender'
   | 'bbs' 
   | 'open-items' 
   | 'revisions';
@@ -387,7 +389,19 @@ export const TopBar: React.FC<TopBarProps> = ({
               }`}
             >
               <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="font-bold">Rate Analysis & Tender Pricing (Phase 12)</span>
+              <span className="font-bold">Rate Analysis & Pricing</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('tender')}
+              className={`text-xs font-semibold h-full flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'tender'
+                  ? 'text-indigo-700 border-b-2 border-indigo-600 font-black bg-indigo-50/70 px-2.5 rounded-t'
+                  : 'text-indigo-900 bg-indigo-50/30 hover:bg-indigo-50 font-bold px-2 rounded-t'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="font-extrabold tracking-tight">TENDER (Phase 13)</span>
             </button>
 
             <button
