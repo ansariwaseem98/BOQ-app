@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { X, ZoomIn, ZoomOut, RotateCcw, FileText, Layers, CheckCircle2 } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, RotateCcw, FileText, Layers, CheckCircle2, Zap } from 'lucide-react';
 import { UnifiedBoqItem } from '../types';
+import { AutoCAD2021Modal } from './AutoCAD2021Modal';
+import { AutoCAD2021LaunchConfig } from '../engine/autocad2021IntegrationEngine';
 
 interface BoqDrawingPreviewModalProps {
   item: UnifiedBoqItem;
@@ -9,6 +11,22 @@ interface BoqDrawingPreviewModalProps {
 
 export const BoqDrawingPreviewModal: React.FC<BoqDrawingPreviewModalProps> = ({ item, onClose }) => {
   const [zoom, setZoom] = useState(1);
+  const [isAutoCADModalOpen, setIsAutoCADModalOpen] = useState(false);
+
+  const autoCadConfig: AutoCAD2021LaunchConfig = {
+    drawingNumber: item.primaryDrawingNumber || 'DWG-001',
+    drawingTitle: item.drawingTitle || `Drawing Sheet ${item.primaryDrawingNumber}`,
+    filename: `${item.primaryDrawingNumber || 'drawing'}.dwg`,
+    fileFormat: 'DWG',
+    elementTag: item.elementType || item.discipline,
+    itemCode: item.itemCode,
+    category: item.category,
+    quantity: item.finalQuantity,
+    unit: item.unit,
+    unitRateAed: item.finalRate,
+    totalAmountAed: item.totalAmount,
+    scale: '1:100',
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -30,6 +48,17 @@ export const BoqDrawingPreviewModal: React.FC<BoqDrawingPreviewModalProps> = ({ 
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* AutoCAD 2021 Launcher Button */}
+            <button
+              onClick={() => setIsAutoCADModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm border border-rose-500 transition-all cursor-pointer"
+              title="Open this drawing sheet in Autodesk AutoCAD 2021 (v24.0 / AC1032)"
+            >
+              <span className="w-4 h-4 rounded bg-white/20 flex items-center justify-center text-[10px] font-black">A</span>
+              <span className="hidden sm:inline">Open in</span>
+              <span>AutoCAD 2021</span>
+            </button>
+
             <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
               <button
                 onClick={() => setZoom(prev => Math.max(0.6, prev - 0.2))}
@@ -122,15 +151,36 @@ export const BoqDrawingPreviewModal: React.FC<BoqDrawingPreviewModalProps> = ({ 
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-medium transition-colors"
-          >
-            Close Drawing Preview
-          </button>
+        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+            <span>AutoCAD 2021 Integration Ready (AC1032) • Currency: <strong>AED</strong></span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsAutoCADModalOpen(true)}
+              className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <Zap className="w-3.5 h-3.5 text-rose-200" />
+              <span>Launch in AutoCAD 2021</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-medium transition-colors"
+            >
+              Close Drawing Preview
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* AutoCAD 2021 Integration Modal */}
+      <AutoCAD2021Modal
+        isOpen={isAutoCADModalOpen}
+        onClose={() => setIsAutoCADModalOpen(false)}
+        config={autoCadConfig}
+      />
     </div>
   );
 };

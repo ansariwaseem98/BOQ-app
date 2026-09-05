@@ -597,9 +597,14 @@ export function calculateBbsSummary(
   const elementMap = new Map<RccElementCategory, { totalBars: number; totalLengthM: number; totalWeightKg: number }>();
 
   rebarList.forEach((r) => {
-    totalBarsCount += r.totalBars;
-    totalLengthMeters += r.totalLengthM;
-    totalWeightKg += r.totalWeightKg;
+    if (!r) return;
+    const bars = r.totalBars || 0;
+    const len = r.totalLengthM || 0;
+    const wt = r.totalWeightKg || 0;
+
+    totalBarsCount += bars;
+    totalLengthMeters += len;
+    totalWeightKg += wt;
 
     if (r.isBlocked || r.verificationStatus === 'BLOCKED') {
       blockedCount++;
@@ -610,20 +615,22 @@ export function calculateBbsSummary(
     }
 
     // Diameter aggregation
-    const dia = r.barDiameterMm;
+    const dia = r.barDiameterMm || 0;
     const existingDia = diaMap.get(dia) || { totalBars: 0, totalLengthM: 0, totalWeightKg: 0 };
-    existingDia.totalBars += r.totalBars;
-    existingDia.totalLengthM += r.totalLengthM;
-    existingDia.totalWeightKg += r.totalWeightKg;
+    existingDia.totalBars += bars;
+    existingDia.totalLengthM += len;
+    existingDia.totalWeightKg += wt;
     diaMap.set(dia, existingDia);
 
     // Element category aggregation
     const elType = r.elementType;
-    const existingEl = elementMap.get(elType) || { totalBars: 0, totalLengthM: 0, totalWeightKg: 0 };
-    existingEl.totalBars += r.totalBars;
-    existingEl.totalLengthM += r.totalLengthM;
-    existingEl.totalWeightKg += r.totalWeightKg;
-    elementMap.set(elType, existingEl);
+    if (elType) {
+      const existingEl = elementMap.get(elType) || { totalBars: 0, totalLengthM: 0, totalWeightKg: 0 };
+      existingEl.totalBars += bars;
+      existingEl.totalLengthM += len;
+      existingEl.totalWeightKg += wt;
+      elementMap.set(elType, existingEl);
+    }
   });
 
   const totalWeightTonnes = Number((totalWeightKg / 1000).toFixed(3));

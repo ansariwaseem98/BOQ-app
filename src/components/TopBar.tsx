@@ -18,6 +18,12 @@ import {
   ShieldCheck,
   DollarSign,
   Briefcase,
+  UploadCloud,
+  Save,
+  CheckCircle2,
+  RotateCw,
+  FolderArchive,
+  AlertOctagon,
 } from 'lucide-react';
 import { ProjectRecord } from '../types';
 
@@ -48,6 +54,12 @@ interface TopBarProps {
   openItemsCount: number;
   conflictsCount: number;
   validationWarningsCount: number;
+  saveStatus?: 'SAVED' | 'SAVING' | 'FAILED' | 'OFFLINE';
+  lastSavedTime?: string;
+  saveErrorMessage?: string;
+  onManualSave?: () => void;
+  onOpenVersionHistory?: () => void;
+  onOpenBackup?: () => void;
   onOpenCreateProject: () => void;
   onOpenEditProject: () => void;
   onOpenValidation: () => void;
@@ -59,6 +71,8 @@ interface TopBarProps {
   onOpenErrorReport?: () => void;
   onOpenExportCenter?: () => void;
   onOpenExportTests?: () => void;
+  onOpenPhase16Integration?: () => void;
+  onOpenPhase17DrawingIntake?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -70,6 +84,12 @@ export const TopBar: React.FC<TopBarProps> = ({
   openItemsCount,
   conflictsCount,
   validationWarningsCount,
+  saveStatus = 'SAVED',
+  lastSavedTime,
+  saveErrorMessage,
+  onManualSave,
+  onOpenVersionHistory,
+  onOpenBackup,
   onOpenCreateProject,
   onOpenEditProject,
   onOpenValidation,
@@ -81,6 +101,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenErrorReport,
   onOpenExportCenter,
   onOpenExportTests,
+  onOpenPhase16Integration,
+  onOpenPhase17DrawingIntake,
 }) => {
   const totalOpenConflicts = openItemsCount + conflictsCount;
   const hasProject = Boolean(projectData && projectData.id && projectData.project?.name);
@@ -116,6 +138,43 @@ export const TopBar: React.FC<TopBarProps> = ({
                       TEST FIXTURE
                     </span>
                   )}
+
+                  {/* Real-time Persistence Status Indicator */}
+                  <div className="flex items-center ml-1">
+                    {saveStatus === 'SAVING' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full animate-pulse">
+                        <RotateCw className="w-3 h-3 animate-spin text-blue-600" />
+                        Saving...
+                      </span>
+                    )}
+                    {saveStatus === 'SAVED' && (
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full"
+                        title="All changes permanently saved in database"
+                      >
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        Saved {lastSavedTime ? `• ${lastSavedTime}` : ''}
+                      </span>
+                    )}
+                    {saveStatus === 'OFFLINE' && (
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-full"
+                        title="Saved locally in offline storage"
+                      >
+                        <AlertTriangle className="w-3 h-3 text-amber-600" />
+                        Cached Locally
+                      </span>
+                    )}
+                    {saveStatus === 'FAILED' && (
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-800 bg-rose-100 border border-rose-300 px-2 py-0.5 rounded-full"
+                        title={saveErrorMessage || 'Failed to save project data'}
+                      >
+                        <AlertOctagon className="w-3 h-3 text-rose-600" />
+                        Save Failed
+                      </span>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -134,9 +193,45 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {hasProject ? (
             <>
+              {/* Manual Save Button */}
+              {onManualSave && (
+                <button
+                  onClick={onManualSave}
+                  title="Force immediate save of all project data & create snapshot"
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs whitespace-nowrap"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>SAVE</span>
+                </button>
+              )}
+
+              {/* Version History Checkpoints */}
+              {onOpenVersionHistory && (
+                <button
+                  onClick={onOpenVersionHistory}
+                  title="View Saved Version Checkpoints & Rollback History"
+                  className="px-2.5 py-1.5 rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap"
+                >
+                  <History className="w-3.5 h-3.5 text-indigo-600" />
+                  <span className="hidden xl:inline">Versions</span>
+                </button>
+              )}
+
+              {/* Backup Export / Import */}
+              {onOpenBackup && (
+                <button
+                  onClick={onOpenBackup}
+                  title="Export / Import complete project backup package (.json)"
+                  className="px-2.5 py-1.5 rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap"
+                >
+                  <FolderArchive className="w-3.5 h-3.5 text-slate-600" />
+                  <span className="hidden xl:inline">Backup</span>
+                </button>
+              )}
+
               {/* Quick Project Switcher Dropdown */}
               {projectsList.length > 1 && (
                 <div className="relative hidden md:block">
@@ -182,6 +277,30 @@ export const TopBar: React.FC<TopBarProps> = ({
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
                   <span className="hidden lg:inline">Review Queue</span>
+                </button>
+              )}
+
+              {/* Phase 17A: Real Drawing Intake + Processing Pipeline */}
+              {onOpenPhase17DrawingIntake && (
+                <button
+                  onClick={onOpenPhase17DrawingIntake}
+                  title="Open Phase 17A Real Drawing Intake, CAD/IFC Parser & Processing Pipeline"
+                  className="px-3 py-1.5 rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:from-blue-700 active:to-indigo-700 text-xs font-black transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap ring-2 ring-blue-300/40"
+                >
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  <span>PHASE 17 INTAKE</span>
+                </button>
+              )}
+
+              {/* Phase 16: Master System Integration & E2E Verification Center */}
+              {onOpenPhase16Integration && (
+                <button
+                  onClick={onOpenPhase16Integration}
+                  title="Open Phase 16 Master Full System Integration, Traceability & Quality Center"
+                  className="px-3 py-1.5 rounded-lg text-white bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-xs font-black transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap ring-2 ring-indigo-300/40"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>PHASE 16 INTEGRATION</span>
                 </button>
               )}
 

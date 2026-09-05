@@ -370,7 +370,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
       discount: 0,
       finalTenderPrice: newBidderPrice,
       bidDate: new Date().toISOString().slice(0, 10),
-      currency: 'USD',
+      currency: 'AED',
       validityDays: newBidderValidity,
       source: 'TENDER_OPENING',
       isUserEntered: true,
@@ -634,7 +634,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
               Tender Grand Total
             </span>
             <div className="text-base font-extrabold text-slate-900 font-mono mt-0.5">
-              ${commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              AED {commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
               <Check className="w-3 h-3" /> Reconciled (incl. Tax)
@@ -646,13 +646,13 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
               Estimated Cost & Margin
             </span>
             <div className="text-base font-extrabold text-slate-900 font-mono mt-0.5">
-              ${commercialSummary.grossMarginAmount.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+              AED {commercialSummary.grossMarginAmount.toLocaleString('en-US', { minimumFractionDigits: 0 })}
               <span className="text-xs font-semibold text-indigo-600 ml-1">
                 ({commercialSummary.grossMarginPercent.toFixed(1)}%)
               </span>
             </div>
             <div className="text-[10px] text-slate-500">
-              Total Cost: ${commercialSummary.totalEstimatedCost.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+              Total Cost: AED {commercialSummary.totalEstimatedCost.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </div>
           </div>
 
@@ -903,35 +903,35 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
                     <span className="text-slate-600">1.0 Base Measured BOQ Direct & Indirect Works:</span>
                     <span className="font-mono font-semibold text-slate-800">
-                      ${commercialSummary.baseBoqMeasuredTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      AED {commercialSummary.baseBoqMeasuredTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
                     <span className="text-slate-600">2.0 Provisional Sums Total:</span>
                     <span className="font-mono font-semibold text-slate-800">
-                      +${commercialSummary.provisionalSumsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      +AED {commercialSummary.provisionalSumsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
                     <span className="text-slate-600">3.0 Prime Cost (PC) Items Total:</span>
                     <span className="font-mono font-semibold text-slate-800">
-                      +${commercialSummary.primeCostTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      +AED {commercialSummary.primeCostTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
                     <span className="text-slate-600">4.0 Selected Optional Items:</span>
                     <span className="font-mono font-semibold text-slate-800">
-                      +${commercialSummary.selectedOptionsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      +AED {commercialSummary.selectedOptionsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
                   <div className="flex justify-between py-1.5 bg-slate-50 px-2 rounded font-semibold text-slate-800">
                     <span>Subtotal before Risk & Discount:</span>
                     <span className="font-mono">
-                      ${commercialSummary.subtotalBeforeRiskDiscount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      AED {commercialSummary.subtotalBeforeRiskDiscount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
@@ -953,7 +953,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                       </div>
                     </div>
                     <span className="font-mono font-semibold text-amber-700">
-                      +${commercialSummary.riskAllowanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      +AED {commercialSummary.riskAllowanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
@@ -975,21 +975,21 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                       </div>
                     </div>
                     <span className="font-mono font-semibold text-emerald-700">
-                      -${commercialSummary.discountAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      -AED {commercialSummary.discountAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
                     <span className="text-slate-600">7.0 Statutory VAT / Tax (5.0%):</span>
                     <span className="font-mono font-semibold text-slate-800">
-                      +${commercialSummary.taxVatAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      +AED {commercialSummary.taxVatAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
                   <div className="flex justify-between py-2.5 bg-indigo-50/80 px-3 rounded-lg font-bold text-indigo-950 text-sm">
                     <span>FINAL TENDER GRAND TOTAL:</span>
                     <span className="font-mono">
-                      ${commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      AED {commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
@@ -1025,7 +1025,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                 Priced Bill of Quantities, Addenda (Nos. {addenda.map((a) => a.addendumNo).join(', ') || 'None'}),
                 and Clarifications, hereby offer to execute and complete the whole of the works for the total Tender Sum of{' '}
                 <strong className="text-slate-900">
-                  USD ${commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  AED {commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </strong>{' '}
                 ({commercialSummary.tenderGrandTotalInWords}) in accordance with the Tender Documents.
               </p>
@@ -1363,7 +1363,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                 <div className="flex justify-between items-center">
                   <h3 className="font-bold text-slate-800 text-sm">Provisional Sums Register</h3>
                   <span className="text-xs font-mono font-bold text-indigo-600">
-                    Total: ${commercialSummary.provisionalSumsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    Total: AED {commercialSummary.provisionalSumsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="space-y-2">
@@ -1371,7 +1371,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                     <div key={ps.id} className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
                       <div className="flex justify-between font-semibold text-slate-800">
                         <span>[{ps.itemNo}] {ps.description}</span>
-                        <span className="font-mono text-indigo-700">${ps.amount.toLocaleString()}</span>
+                        <span className="font-mono text-indigo-700">AED {ps.amount.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-[11px] text-slate-500">
                         <span>Purpose: {ps.reason}</span>
@@ -1389,7 +1389,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                 <div className="flex justify-between items-center">
                   <h3 className="font-bold text-slate-800 text-sm">Prime Cost (PC) Items with Attendance</h3>
                   <span className="text-xs font-mono font-bold text-indigo-600">
-                    Total: ${commercialSummary.primeCostTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    Total: AED {commercialSummary.primeCostTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="space-y-2">
@@ -1397,10 +1397,10 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                     <div key={pc.id} className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
                       <div className="flex justify-between font-semibold text-slate-800">
                         <span>[{pc.itemNo}] {pc.description}</span>
-                        <span className="font-mono text-slate-900">${pc.totalWithAttendance.toLocaleString()}</span>
+                        <span className="font-mono text-slate-900">AED {pc.totalWithAttendance.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-[11px] text-slate-500">
-                        <span>Allowance: ${pc.allowanceAmount.toLocaleString()} + Attendance ({pc.attendancePercent}% = ${pc.attendanceAmount.toLocaleString()})</span>
+                        <span>Allowance: AED {pc.allowanceAmount.toLocaleString()} + Attendance ({pc.attendancePercent}% = AED {pc.attendanceAmount.toLocaleString()})</span>
                       </div>
                     </div>
                   ))}
@@ -1470,7 +1470,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                       <div className="text-right font-mono">
                         <span className="text-xs text-slate-500 block">Total Pricing Delta</span>
                         <span className="text-sm font-bold text-amber-700">
-                          +${ad.pricingChangeTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          +AED {ad.pricingChangeTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>
@@ -1509,8 +1509,8 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                                 <th className="py-1.5 px-2.5 text-right">Previous Qty</th>
                                 <th className="py-1.5 px-2.5 text-right">New Qty</th>
                                 <th className="py-1.5 px-2.5 text-right">Delta Qty</th>
-                                <th className="py-1.5 px-2.5 text-right">Rate ($)</th>
-                                <th className="py-1.5 px-2.5 text-right">Pricing Impact ($)</th>
+                                <th className="py-1.5 px-2.5 text-right">Rate (AED)</th>
+                                <th className="py-1.5 px-2.5 text-right">Pricing Impact (AED)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -1525,9 +1525,9 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                                   <td className="py-1.5 px-2.5 text-right font-mono font-bold text-indigo-600">
                                     {imp.quantityDelta ? `+${imp.quantityDelta} ${imp.unit || ''}` : '-'}
                                   </td>
-                                  <td className="py-1.5 px-2.5 text-right font-mono">${imp.rate?.toFixed(2) ?? '-'}</td>
+                                  <td className="py-1.5 px-2.5 text-right font-mono">{imp.rate ? `AED ${imp.rate.toFixed(2)}` : '-'}</td>
                                   <td className="py-1.5 px-2.5 text-right font-mono font-bold text-amber-700">
-                                    +${imp.pricingImpact.toFixed(2)}
+                                    +AED {imp.pricingImpact.toFixed(2)}
                                   </td>
                                 </tr>
                               ))}
@@ -1584,7 +1584,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                         <span className="font-semibold text-slate-700">Impact Assessment:</span>
                         {clr.impacts.map((imp, i) => (
                           <span key={i} className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-medium">
-                            [{imp.affectedItemType}] {imp.details} {imp.impactValue ? `(+$${imp.impactValue.toLocaleString()})` : ''}
+                            [{imp.affectedItemType}] {imp.details} {imp.impactValue ? `(+AED ${imp.impactValue.toLocaleString()})` : ''}
                           </span>
                         ))}
                       </div>
@@ -1613,7 +1613,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                 <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
                   <span className="text-[10px] text-slate-500 font-bold uppercase block">Lowest Bidder Price</span>
                   <div className="text-base font-extrabold text-emerald-700 mt-1 font-mono">
-                    ${bidAnalysisStats.lowestPrice.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                    AED {bidAnalysisStats.lowestPrice.toLocaleString('en-US', { minimumFractionDigits: 0 })}
                   </div>
                   <span className="text-[10px] text-slate-400 truncate block">{bidAnalysisStats.lowestBidder}</span>
                 </div>
@@ -1621,7 +1621,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                 <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
                   <span className="text-[10px] text-slate-500 font-bold uppercase block">Average Market Bid</span>
                   <div className="text-base font-extrabold text-slate-800 mt-1 font-mono">
-                    ${bidAnalysisStats.averagePrice.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                    AED {bidAnalysisStats.averagePrice.toLocaleString('en-US', { minimumFractionDigits: 0 })}
                   </div>
                   <span className="text-[10px] text-slate-400">Mean tender value</span>
                 </div>
@@ -1629,7 +1629,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                 <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
                   <span className="text-[10px] text-slate-500 font-bold uppercase block">Variance from Lowest</span>
                   <div className="text-base font-extrabold text-amber-700 mt-1 font-mono">
-                    {bidAnalysisStats.varianceFromLowest >= 0 ? '+' : ''}${bidAnalysisStats.varianceFromLowest.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                    {bidAnalysisStats.varianceFromLowest >= 0 ? '+' : ''}AED {bidAnalysisStats.varianceFromLowest.toLocaleString('en-US', { minimumFractionDigits: 0 })}
                     <span className="text-xs ml-1">({bidAnalysisStats.varianceFromLowestPercent.toFixed(1)}%)</span>
                   </div>
                   <span className="text-[10px] text-slate-400">Delta to minimum</span>
@@ -1638,7 +1638,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                 <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
                   <span className="text-[10px] text-slate-500 font-bold uppercase block">Highest Bidder Price</span>
                   <div className="text-base font-extrabold text-rose-700 mt-1 font-mono">
-                    ${bidAnalysisStats.highestPrice.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                    AED {bidAnalysisStats.highestPrice.toLocaleString('en-US', { minimumFractionDigits: 0 })}
                   </div>
                   <span className="text-[10px] text-slate-400 truncate block">{bidAnalysisStats.highestBidder}</span>
                 </div>
@@ -1661,11 +1661,11 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                   <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px]">
                     <tr>
                       <th className="py-2.5 px-3">Bidder Name</th>
-                      <th className="py-2.5 px-3 text-right">Base Price ($)</th>
-                      <th className="py-2.5 px-3 text-right">PS ($)</th>
-                      <th className="py-2.5 px-3 text-right">Discount ($)</th>
-                      <th className="py-2.5 px-3 text-right">Final Price (USD)</th>
-                      <th className="py-2.5 px-3 text-right">Variance ($ / %)</th>
+                      <th className="py-2.5 px-3 text-right">Base Price (AED)</th>
+                      <th className="py-2.5 px-3 text-right">PS (AED)</th>
+                      <th className="py-2.5 px-3 text-right">Discount (AED)</th>
+                      <th className="py-2.5 px-3 text-right">Final Price (AED)</th>
+                      <th className="py-2.5 px-3 text-right">Variance (AED / %)</th>
                       <th className="py-2.5 px-3 text-center">Validity</th>
                       <th className="py-2.5 px-3">Source & Notes</th>
                     </tr>
@@ -1696,20 +1696,20 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                               )}
                             </div>
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono">${b.basePrice.toLocaleString()}</td>
-                          <td className="py-2.5 px-3 text-right font-mono">${b.provisionalSum.toLocaleString()}</td>
+                          <td className="py-2.5 px-3 text-right font-mono">AED {b.basePrice.toLocaleString()}</td>
+                          <td className="py-2.5 px-3 text-right font-mono">AED {b.provisionalSum.toLocaleString()}</td>
                           <td className="py-2.5 px-3 text-right font-mono text-emerald-700">
-                            {b.discount > 0 ? `-$${b.discount.toLocaleString()}` : '$0'}
+                            {b.discount > 0 ? `-AED ${b.discount.toLocaleString()}` : 'AED 0'}
                           </td>
                           <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
-                            ${b.finalTenderPrice.toLocaleString()}
+                            AED {b.finalTenderPrice.toLocaleString()}
                           </td>
                           <td className="py-2.5 px-3 text-right font-mono font-semibold">
                             {b.isInternalEstimate ? (
                               <span className="text-slate-400">Baseline</span>
                             ) : (
                               <span className={diff < 0 ? 'text-emerald-600' : 'text-rose-600'}>
-                                {diff >= 0 ? '+' : ''}${diff.toLocaleString()} ({diffPct.toFixed(1)}%)
+                                {diff >= 0 ? '+' : ''}AED {diff.toLocaleString()} ({diffPct.toFixed(1)}%)
                               </span>
                             )}
                           </td>
@@ -1739,7 +1739,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                   />
                   <input
                     type="number"
-                    placeholder="Final Tender Price (USD)"
+                    placeholder="Final Tender Price (AED)"
                     value={newBidderPrice || ''}
                     onChange={(e) => setNewBidderPrice(parseFloat(e.target.value) || 0)}
                     className="px-2.5 py-1.5 bg-white border border-slate-300 rounded focus:border-indigo-500"
@@ -1772,8 +1772,8 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                       <th className="py-2.5 px-4">Description</th>
                       <th className="py-2.5 px-3 text-right">Our Qty</th>
                       <th className="py-2.5 px-3 text-right">Competitor Qty</th>
-                      <th className="py-2.5 px-3 text-right">Our Rate ($)</th>
-                      <th className="py-2.5 px-3 text-right">Competitor Rate ($)</th>
+                      <th className="py-2.5 px-3 text-right">Our Rate (AED)</th>
+                      <th className="py-2.5 px-3 text-right">Competitor Rate (AED)</th>
                       <th className="py-2.5 px-3 text-right">Rate Delta (%)</th>
                     </tr>
                   </thead>
@@ -1784,8 +1784,8 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                         <td className="py-2.5 px-4 text-slate-800 font-semibold">{item.description}</td>
                         <td className="py-2.5 px-3 text-right font-mono">{item.ourQuantity} {item.unit}</td>
                         <td className="py-2.5 px-3 text-right font-mono text-slate-500">{item.competitorQuantity} {item.unit}</td>
-                        <td className="py-2.5 px-3 text-right font-mono">${item.ourRate.toFixed(2)}</td>
-                        <td className="py-2.5 px-3 text-right font-mono">${item.competitorRate.toFixed(2)}</td>
+                        <td className="py-2.5 px-3 text-right font-mono">AED {item.ourRate.toFixed(2)}</td>
+                        <td className="py-2.5 px-3 text-right font-mono">AED {item.competitorRate.toFixed(2)}</td>
                         <td className="py-2.5 px-3 text-right font-mono font-bold">
                           <span className={item.rateDifference < 0 ? 'text-emerald-600' : 'text-rose-600'}>
                             {item.rateDifference >= 0 ? '+' : ''}{item.rateDifferencePercent.toFixed(1)}%
@@ -1823,7 +1823,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                       <th className="py-2.5 px-4">Risk Description</th>
                       <th className="py-2.5 px-3 text-center">P × I = Score</th>
                       <th className="py-2.5 px-3">Level</th>
-                      <th className="py-2.5 px-3 text-right">Cost Impact ($)</th>
+                      <th className="py-2.5 px-3 text-right">Cost Impact (AED)</th>
                       <th className="py-2.5 px-4">Mitigation Action</th>
                       <th className="py-2.5 px-3">Status</th>
                     </tr>
@@ -1855,7 +1855,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                           </span>
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono font-semibold text-amber-700">
-                          ${r.costImpact.toLocaleString()}
+                          AED {r.costImpact.toLocaleString()}
                         </td>
                         <td className="py-2.5 px-4 text-slate-600 text-[11px]">{r.mitigation}</td>
                         <td className="py-2.5 px-3">
@@ -2201,9 +2201,9 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                       <th className="py-2.5 px-3">Tender Ref</th>
                       <th className="py-2.5 px-4">Project Name</th>
                       <th className="py-2.5 px-3">Client</th>
-                      <th className="py-2.5 px-3 text-right">Our Bid ($)</th>
+                      <th className="py-2.5 px-3 text-right">Our Bid (AED)</th>
                       <th className="py-2.5 px-3">Outcome</th>
-                      <th className="py-2.5 px-3 text-right">Winning Price ($)</th>
+                      <th className="py-2.5 px-3 text-right">Winning Price (AED)</th>
                       <th className="py-2.5 px-3 text-right">Achieved Margin</th>
                       <th className="py-2.5 px-4">Key Lessons Learned</th>
                     </tr>
@@ -2214,7 +2214,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                         <td className="py-2.5 px-3 font-mono font-bold text-slate-700">{ht.tenderNumber}</td>
                         <td className="py-2.5 px-4 font-semibold text-slate-800">{ht.projectName}</td>
                         <td className="py-2.5 px-3 text-slate-600">{ht.client}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-semibold">${ht.tenderAmount.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-right font-mono font-semibold">AED {ht.tenderAmount.toLocaleString()}</td>
                         <td className="py-2.5 px-3">
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -2227,7 +2227,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                           </span>
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono text-slate-700">
-                          ${ht.winningAmount?.toLocaleString() ?? '-'}
+                          {ht.winningAmount ? `AED ${ht.winningAmount.toLocaleString()}` : '-'}
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono text-indigo-600 font-bold">
                           {ht.profitMarginAchieved ? `${ht.profitMarginAchieved}%` : '-'}
@@ -2253,7 +2253,7 @@ export const TenderWorkspace: React.FC<TenderWorkspaceProps> = ({
                         <p className="text-slate-700 mt-0.5">{rev.reason}</p>
                       </div>
                       <div className="text-right font-mono font-bold text-slate-900">
-                        ${rev.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        AED {rev.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </div>
                     </div>
                   ))}

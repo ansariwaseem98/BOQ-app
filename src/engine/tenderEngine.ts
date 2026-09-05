@@ -42,7 +42,8 @@ export class TenderEngine {
     optionalItems: OptionalItem[],
     discountConfig: TenderDiscountConfig,
     riskConfig: TenderRiskAllowanceConfig,
-    taxRatePercent: number = 5.0
+    taxRatePercent: number = 5.0,
+    currency: string = 'AED'
   ): CommercialBidSummary {
     // 1. Calculate Base Measured BOQ Total & Estimated Costs
     let baseBoqMeasuredTotal = 0;
@@ -143,7 +144,7 @@ export class TenderEngine {
     const reconciliationBalanced = diff < 0.01;
 
     // 12. Amount in Words
-    const tenderGrandTotalInWords = this.convertNumberToWords(tenderGrandTotal, 'USD');
+    const tenderGrandTotalInWords = this.convertNumberToWords(tenderGrandTotal, currency);
 
     return {
       baseBoqMeasuredTotal,
@@ -173,9 +174,62 @@ export class TenderEngine {
   /**
    * Convert currency number into formal English Words
    */
-  public static convertNumberToWords(amount: number, currency: string = 'USD'): string {
+  public static convertNumberToWords(amount: number, currency: string = 'AED'): string {
+    const curUpper = (currency || 'AED').trim().toUpperCase();
+
+    // Map currency names and subunit names
+    let majorUnit = curUpper;
+    let minorUnit = 'Cents';
+
+    switch (curUpper) {
+      case 'AED':
+        majorUnit = 'UAE Dirhams';
+        minorUnit = 'Fils';
+        break;
+      case 'USD':
+        majorUnit = 'United States Dollars';
+        minorUnit = 'Cents';
+        break;
+      case 'EUR':
+        majorUnit = 'Euros';
+        minorUnit = 'Cents';
+        break;
+      case 'GBP':
+        majorUnit = 'Pounds Sterling';
+        minorUnit = 'Pence';
+        break;
+      case 'SAR':
+        majorUnit = 'Saudi Riyals';
+        minorUnit = 'Halalas';
+        break;
+      case 'QAR':
+        majorUnit = 'Qatari Riyals';
+        minorUnit = 'Dirhams';
+        break;
+      case 'OMR':
+        majorUnit = 'Omani Rials';
+        minorUnit = 'Baisa';
+        break;
+      case 'BHD':
+        majorUnit = 'Bahraini Dinars';
+        minorUnit = 'Fils';
+        break;
+      case 'KWD':
+        majorUnit = 'Kuwaiti Dinars';
+        minorUnit = 'Fils';
+        break;
+      case 'INR':
+        majorUnit = 'Indian Rupees';
+        minorUnit = 'Paise';
+        break;
+      default:
+        majorUnit = curUpper;
+        minorUnit = 'Cents';
+        break;
+    }
+
     if (isNaN(amount) || amount === 0) {
-      return `Zero ${currency === 'USD' ? 'United States Dollars' : currency} Only`;
+      return `Zero ${majorUnit} Only`;
     }
 
     const units = [
@@ -222,10 +276,9 @@ export class TenderEngine {
     words = words.trim();
     if (!words) words = 'Zero';
 
-    const currencyWord = currency === 'USD' ? 'United States Dollars' : `${currency}`;
-    const centsWord = decimalPart > 0 ? ` and ${formatHundreds(decimalPart)} Cents` : '';
+    const centsWord = decimalPart > 0 ? ` and ${formatHundreds(decimalPart)} ${minorUnit}` : '';
 
-    return `${words} ${currencyWord}${centsWord} Only`;
+    return `${words} ${majorUnit}${centsWord} Only`;
   }
 
   /**

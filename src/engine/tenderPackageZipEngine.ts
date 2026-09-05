@@ -112,6 +112,7 @@ export class TenderPackageZipEngine {
     };
 
     // 01_TENDER
+    const cur = tenderInfo.currency || 'AED';
     const formOfTenderText = `================================================================================
 FORM OF TENDER & SUBMISSION COVENANT
 ================================================================================
@@ -126,7 +127,7 @@ Date of Return: ${tenderInfo.closingDate} (${tenderInfo.submissionTime})
 Tender Revision:${tenderInfo.currentTenderRevision}
 
 TENDER SUM:
-${tenderInfo.currency} $${commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+${cur} ${commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 (${commercialSummary.tenderGrandTotalInWords})
 
 We, the undersigned Tenderer, having examined the Conditions of Contract, Employer's Requirements,
@@ -149,15 +150,15 @@ AUTHORIZED SIGNATORIES:
 **Tender Number:** ${tenderInfo.tenderNumber}  
 **BOQ Revision:** ${tenderInfo.currentBoqRevision}  
 **Total Measured Items:** ${boqItems.length}  
-**Base BOQ Measured Total:** $${commercialSummary.baseBoqMeasuredTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+**Base BOQ Measured Total:** ${cur} ${commercialSummary.baseBoqMeasuredTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
 
-| Item Code | Discipline | Description | Drawing Ref | Quantity | Unit | Rate ($) | Total Amount ($) |
+| Item Code | Discipline | Description | Drawing Ref | Quantity | Unit | Rate (${cur}) | Total Amount (${cur}) |
 |---|---|---|---|---|---|---|---|
 ${boqItems.map((b) => {
   const rate = rateAnalyses.find((r) => r.boqItemId === b.id || r.itemCode === b.itemCode);
   const rVal = rate?.finalRate || 0;
   const amt = (b.finalQuantity || 0) * rVal;
-  return `| ${b.itemCode} | ${b.discipline} | ${b.description.replace(/\|/g, '-')} | ${b.primaryDrawingNumber || '-'} | ${b.finalQuantity} | ${b.unit} | $${rVal.toFixed(2)} | $${amt.toFixed(2)} |`;
+  return `| ${b.itemCode} | ${b.discipline} | ${b.description.replace(/\|/g, '-')} | ${b.primaryDrawingNumber || '-'} | ${b.finalQuantity} | ${b.unit} | ${cur} ${rVal.toFixed(2)} | ${cur} ${amt.toFixed(2)} |`;
 }).join('\n')}
 `;
     addFileToZip('02_BOQ', 'Priced Bill of Quantities & Measurement Schedules', '02_Priced_BOQ_Schedule.md', 'text/markdown', boqMarkdown);
@@ -198,8 +199,8 @@ ${drawings.map((d) => `| ${d.drawingNo} | ${d.title} | ${d.discipline} | ${d.rev
 **Pricing Scenario:** ${activeScenario.name} (${activeScenario.description})  
 **Overhead Markup:** ${activeScenario.overheadPercent}%  
 **Profit Margin:** ${activeScenario.profitPercent}%  
-**Direct Cost Total:** $${commercialSummary.estimatedDirectCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}  
-**Overhead Total:** $${commercialSummary.estimatedOverheadCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}  
+**Direct Cost Total:** ${cur} ${commercialSummary.estimatedDirectCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}  
+**Overhead Total:** ${cur} ${commercialSummary.estimatedOverheadCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}  
 `;
     addFileToZip('06_RATE_ANALYSIS', 'Detailed Unit Rate Build-ups & Cost Breakdowns', '06_Rate_Analysis_BuildUp_Schedule.md', 'text/markdown', rateAnalysisText);
 
@@ -217,18 +218,18 @@ ${drawings.map((d) => `| ${d.drawingNo} | ${d.title} | ${d.discipline} | ${d.rev
 
     // 08_COMMERCIAL
     const commercialSummaryText = `# COMMERCIAL BID SUMMARY & PRICE RECONCILIATION
-- Base Measured BOQ: $${commercialSummary.baseBoqMeasuredTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-- Provisional Sums: $${commercialSummary.provisionalSumsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-- Prime Cost Items: $${commercialSummary.primeCostTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-- Selected Options: $${commercialSummary.selectedOptionsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-- Subtotal: $${commercialSummary.subtotalBeforeRiskDiscount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-- Risk Allowance (${commercialSummary.riskAllowancePercent}%): +$${commercialSummary.riskAllowanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-- Commercial Discount (${commercialSummary.discountPercent}%): -$${commercialSummary.discountAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-- Net Commercial Subtotal: $${commercialSummary.subtotalAfterDiscountRisk.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-- VAT / Tax (${commercialSummary.taxVatPercent}%): +$${commercialSummary.taxVatAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-- FINAL TENDER SUM: $${commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Base Measured BOQ: ${cur} ${commercialSummary.baseBoqMeasuredTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Provisional Sums: ${cur} ${commercialSummary.provisionalSumsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Prime Cost Items: ${cur} ${commercialSummary.primeCostTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Selected Options: ${cur} ${commercialSummary.selectedOptionsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Subtotal: ${cur} ${commercialSummary.subtotalBeforeRiskDiscount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Risk Allowance (${commercialSummary.riskAllowancePercent}%): +${cur} ${commercialSummary.riskAllowanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Commercial Discount (${commercialSummary.discountPercent}%): -${cur} ${commercialSummary.discountAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Net Commercial Subtotal: ${cur} ${commercialSummary.subtotalAfterDiscountRisk.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- VAT / Tax (${commercialSummary.taxVatPercent}%): +${cur} ${commercialSummary.taxVatAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- FINAL TENDER SUM: ${cur} ${commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
 - IN WORDS: ${commercialSummary.tenderGrandTotalInWords}
-- Gross Profit Margin: $${commercialSummary.grossMarginAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${commercialSummary.grossMarginPercent.toFixed(2)}%)
+- Gross Profit Margin: ${cur} ${commercialSummary.grossMarginAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${commercialSummary.grossMarginPercent.toFixed(2)}%)
 `;
     addFileToZip('08_COMMERCIAL', 'Commercial Summary, Price Reconciliation & Cash Flows', '08_Commercial_Price_Reconciliation.md', 'text/markdown', commercialSummaryText);
 
@@ -253,7 +254,7 @@ ${addenda.map((a) => `### ${a.addendumNo} (Date: ${a.date})
 **Affected Drawings:** ${a.affectedDrawingNos.join(', ')}  
 **Affected BOQ Items:** ${a.affectedBoqItemCodes.join(', ')}  
 **Quantity Change:** ${a.quantityChangeSummary}  
-**Pricing Impact:** $${a.pricingChangeTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}  
+**Pricing Impact:** ${cur} ${a.pricingChangeTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}  
 **Status:** ${a.status}  
 `).join('\n')}
 `;

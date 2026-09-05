@@ -438,7 +438,7 @@ export class DrawingIntelligenceEngine {
           newValue: Number(newVolume.toFixed(3)),
           unit: 'm³',
           deltaAmount: Number(masonryCostDelta.toFixed(2)),
-          currency: 'USD',
+          currency: 'AED',
         },
       ],
       affectedTenderCostDelta: Number(totalCostDelta.toFixed(2)),

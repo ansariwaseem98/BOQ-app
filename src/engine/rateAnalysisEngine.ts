@@ -177,7 +177,7 @@ export class RateAnalysisEngine {
             amount: 0,
             source: 'Rate Database',
             date: '2026-08-01',
-            currency: 'USD',
+            currency: 'AED',
           }))
         : this.generateDefaultComponentsForBoqItem(boq);
 
@@ -191,7 +191,7 @@ export class RateAnalysisEngine {
         unit: boq.unit,
         rateUnit: boq.unit,
         unitMismatch: false,
-        currency: 'USD',
+        currency: 'AED',
         effectiveDate: '2026-08-01',
         location: 'Central Project Site',
         components,
@@ -272,7 +272,7 @@ export class RateAnalysisEngine {
         amount: materialShare * 1.025,
         source: 'Rate Database',
         date: '2026-08-01',
-        currency: 'USD',
+        currency: 'AED',
       },
       {
         id: `RC-${boq.itemCode}-2`,
@@ -285,7 +285,7 @@ export class RateAnalysisEngine {
         amount: labourShare,
         source: 'Rate Database',
         date: '2026-08-01',
-        currency: 'USD',
+        currency: 'AED',
       },
       {
         id: `RC-${boq.itemCode}-3`,
@@ -298,7 +298,7 @@ export class RateAnalysisEngine {
         amount: equipShare,
         source: 'Rate Database',
         date: '2026-08-01',
-        currency: 'USD',
+        currency: 'AED',
       },
       {
         id: `RC-${boq.itemCode}-4`,
@@ -311,7 +311,7 @@ export class RateAnalysisEngine {
         amount: transportShare,
         source: 'Rate Database',
         date: '2026-08-01',
-        currency: 'USD',
+        currency: 'AED',
       },
     ];
   }
@@ -587,7 +587,7 @@ export class RateAnalysisEngine {
     return {
       projectId,
       projectName,
-      currency: 'USD',
+      currency: 'AED',
       pricingRevision: pricingRevisionCode,
       isFrozen,
       totalBoqItems: boqItems.length,
@@ -702,7 +702,7 @@ export class RateAnalysisEngine {
           description: boq.description,
           issueType: 'NEGATIVE_RATE',
           severity: 'CRITICAL',
-          message: `Final unit rate is negative ($${rateRec.finalRate.toFixed(2)}). Calculations invalid.`,
+          message: `Final unit rate is negative (AED ${rateRec.finalRate.toFixed(2)}). Calculations invalid.`,
           suggestedAction: 'Correct negative component rates in rate build-up.',
         });
       }
@@ -731,10 +731,10 @@ export class RateAnalysisEngine {
   }
 
   /**
-   * Convert number into English Currency Words (e.g. $1,250.50 -> One Thousand Two Hundred Fifty Dollars and Fifty Cents)
+   * Convert number into English Currency Words (e.g. AED 1,250.50 -> One Thousand Two Hundred Fifty UAE Dirhams and 50/100 Fils)
    */
   public static numberToEnglishWords(amount: number): string {
-    if (isNaN(amount) || amount === 0) return 'Zero Dollars and Zero Cents';
+    if (isNaN(amount) || amount === 0) return 'Zero UAE Dirhams and Zero Fils';
 
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
     const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
@@ -755,22 +755,22 @@ export class RateAnalysisEngine {
       return str.trim();
     }
 
-    const dollars = Math.floor(amount);
-    const cents = Math.round((amount - dollars) * 100);
+    const dirhams = Math.floor(amount);
+    const fils = Math.round((amount - dirhams) * 100);
 
     let result = '';
-    const billions = Math.floor(dollars / 1000000000);
-    const millions = Math.floor((dollars % 1000000000) / 1000000);
-    const thousands = Math.floor((dollars % 1000000) / 1000);
-    const remainder = dollars % 1000;
+    const billions = Math.floor(dirhams / 1000000000);
+    const millions = Math.floor((dirhams % 1000000000) / 1000000);
+    const thousands = Math.floor((dirhams % 1000000) / 1000);
+    const remainder = dirhams % 1000;
 
     if (billions > 0) result += convertGroup(billions) + ' Billion ';
     if (millions > 0) result += convertGroup(millions) + ' Million ';
     if (thousands > 0) result += convertGroup(thousands) + ' Thousand ';
     if (remainder > 0) result += convertGroup(remainder) + ' ';
 
-    result = result.trim() + (dollars === 1 ? ' Dollar' : ' Dollars');
-    result += ` and ${cents}/100 Cents`;
+    result = result.trim() + (dirhams === 1 ? ' UAE Dirham' : ' UAE Dirhams');
+    result += ` and ${fils}/100 Fils`;
 
     return result;
   }

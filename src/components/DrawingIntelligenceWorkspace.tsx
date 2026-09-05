@@ -1289,7 +1289,7 @@ export const DrawingIntelligenceWorkspace: React.FC = () => {
                 </div>
 
                 <div className="text-xs font-mono bg-indigo-950/80 text-indigo-300 border border-indigo-700/50 px-3 py-1.5 rounded-lg">
-                  BOQ Delta Impact: +${revisionDiff.impactedBoqItemsTotalDelta.toFixed(2)} USD
+                  BOQ Delta Impact: +AED {revisionDiff.impactedBoqItemsTotalDelta.toFixed(2)}
                 </div>
               </div>
 

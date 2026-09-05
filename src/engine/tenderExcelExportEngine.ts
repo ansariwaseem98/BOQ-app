@@ -62,6 +62,8 @@ export class TenderExcelExportEngine {
   ): void {
     const wb = XLSX.utils.book_new();
 
+    const cur = tenderInfo.currency || 'AED';
+
     // 1. Cover & Executive Summary Sheet
     const coverData = [
       ['CONFIDENTIAL TENDER SUBMISSION PACKAGE', '', '', '', ''],
@@ -76,9 +78,10 @@ export class TenderExcelExportEngine {
       ['Bid Validity:', `${tenderInfo.validityDays} Days`, '', 'Validity Expiry:', tenderInfo.validityExpiryDate],
       ['Tender Revision:', tenderInfo.currentTenderRevision, '', 'BOQ Revision:', tenderInfo.currentBoqRevision],
       ['Pricing Scenario Used:', activeScenario.name, '', 'Pricing Revision:', tenderInfo.currentPricingRevision],
+      ['Currency:', cur, '', '', ''],
       ['', '', '', '', ''],
       ['COMMERCIAL PRICE RECONCILIATION SUMMARY', '', '', '', ''],
-      ['Line Item', 'Description / Reference', 'Subtotal Amount (USD)', 'Calculation Basis', 'Status'],
+      ['Line Item', 'Description / Reference', `Subtotal Amount (${cur})`, 'Calculation Basis', 'Status'],
       ['1.0', 'Base Measured BOQ Direct & Indirect Total', commercialSummary.baseBoqMeasuredTotal, 'Verified Drawing BOQ Takeoff', 'Measured'],
       ['2.0', 'Provisional Sums (Defined & Nominated)', commercialSummary.provisionalSumsTotal, `${provisionalSums.length} Defined Contingencies`, 'Fixed'],
       ['3.0', 'Prime Cost Items (PC Allowances + Attendance)', commercialSummary.primeCostTotal, `${primeCostItems.length} Nominated Packages`, 'Fixed'],
@@ -96,7 +99,7 @@ export class TenderExcelExportEngine {
       ['Total Estimated Direct Construction Cost:', commercialSummary.estimatedDirectCost, '', '', ''],
       ['Total Estimated General & Site Overhead Cost:', commercialSummary.estimatedOverheadCost, '', '', ''],
       ['Total Combined Estimated Cost (Direct + Overhead):', commercialSummary.totalEstimatedCost, '', '', ''],
-      ['Estimated Gross Profit Margin ($):', commercialSummary.grossMarginAmount, '', '', ''],
+      [`Estimated Gross Profit Margin (${cur}):`, commercialSummary.grossMarginAmount, '', '', ''],
       ['Estimated Gross Profit Margin (%):', `${commercialSummary.grossMarginPercent.toFixed(2)}%`, '', '', ''],
       ['Reconciliation Balanced:', commercialSummary.reconciliationBalanced ? 'YES (100% Exact)' : 'NO (Mismatch)', '', '', ''],
       ['', '', '', '', ''],
@@ -120,11 +123,11 @@ export class TenderExcelExportEngine {
       'Drawing No Ref',
       'Verified Quantity',
       'Unit',
-      'Direct Cost/Unit',
-      'Overhead/Unit',
-      'Profit/Unit',
-      'Final Rate (USD)',
-      'Total Amount (USD)',
+      `Direct Cost/Unit (${cur})`,
+      `Overhead/Unit (${cur})`,
+      `Profit/Unit (${cur})`,
+      `Final Rate (${cur})`,
+      `Total Amount (${cur})`,
       'Rate Source / Audit',
     ];
 
@@ -223,11 +226,11 @@ export class TenderExcelExportEngine {
     // 5. Provisional Sums & Prime Cost Items
     const psPcData = [
       ['PROVISIONAL SUMS REGISTER', '', '', '', '', ''],
-      ['Item No', 'Description', 'Unit', 'Amount (USD)', 'Reason / Contingency Purpose', 'Status'],
+      ['Item No', 'Description', 'Unit', `Amount (${cur})`, 'Reason / Contingency Purpose', 'Status'],
       ...provisionalSums.map((ps) => [ps.itemNo, ps.description, ps.unit, ps.amount, ps.reason, ps.status]),
       ['', '', '', '', '', ''],
       ['PRIME COST (PC) ITEMS REGISTER', '', '', '', '', ''],
-      ['Item No', 'Description', 'Allowance (USD)', 'Attendance %', 'Attendance (USD)', 'Total PC with Attendance (USD)', 'Notes'],
+      ['Item No', 'Description', `Allowance (${cur})`, 'Attendance %', `Attendance (${cur})`, `Total PC with Attendance (${cur})`, 'Notes'],
       ...primeCostItems.map((pc) => [
         pc.itemNo,
         pc.description,
@@ -245,7 +248,7 @@ export class TenderExcelExportEngine {
     // 6. Options & Alternate Proposals
     const optAltData = [
       ['OPTIONAL TENDER ITEMS REGISTER', '', '', '', '', ''],
-      ['Option Code', 'Title', 'Discipline', 'Amount (USD)', 'Selected in Base?', 'Decision Deadline', 'Description'],
+      ['Option Code', 'Title', 'Discipline', `Amount (${cur})`, 'Selected in Base?', 'Decision Deadline', 'Description'],
       ...optionalItems.map((opt) => [
         opt.optionCode,
         opt.title,
@@ -257,7 +260,7 @@ export class TenderExcelExportEngine {
       ]),
       ['', '', '', '', '', ''],
       ['VALUE ENGINEERING & ALTERNATE PROPOSALS', '', '', '', '', ''],
-      ['Alternate Code', 'Base Scope Proposal', 'Base Cost', 'Alternate VE Proposal', 'Alternate Cost', 'Cost Delta ($)', 'Delta %', 'Time Delta', 'Merit'],
+      ['Alternate Code', 'Base Scope Proposal', `Base Cost (${cur})`, 'Alternate VE Proposal', `Alternate Cost (${cur})`, `Cost Delta (${cur})`, 'Delta %', 'Time Delta', 'Merit'],
       ...alternates.map((alt) => [
         alt.alternateCode,
         alt.baseScopeTitle,
@@ -277,7 +280,7 @@ export class TenderExcelExportEngine {
     // 7. Addenda & Clarifications
     const addClrData = [
       ['TENDER ADDENDA REGISTER', '', '', '', '', ''],
-      ['Addendum No', 'Date', 'Description', 'Affected Drawings', 'Affected BOQ Codes', 'Pricing Impact (USD)', 'Status'],
+      ['Addendum No', 'Date', 'Description', 'Affected Drawings', 'Affected BOQ Codes', `Pricing Impact (${cur})`, 'Status'],
       ...addenda.map((ad) => [
         ad.addendumNo,
         ad.date,
@@ -336,13 +339,13 @@ export class TenderExcelExportEngine {
     const bidHeaders = [
       'Bidder Name',
       'Type',
-      'Base Price (USD)',
-      'Provisional Sums',
-      'Options',
-      'Discount',
-      'Tax / VAT',
-      'Final Tender Price (USD)',
-      'Difference vs Internal ($)',
+      `Base Price (${cur})`,
+      `Provisional Sums (${cur})`,
+      `Options (${cur})`,
+      `Discount (${cur})`,
+      `Tax / VAT (${cur})`,
+      `Final Tender Price (${cur})`,
+      `Difference vs Internal (${cur})`,
       'Difference %',
       'Bid Validity',
       'Source / Notes',
@@ -375,7 +378,7 @@ export class TenderExcelExportEngine {
     // 10. Risk Register & Assumptions
     const riskData = [
       ['PROJECT TENDER RISK REGISTER', '', '', '', '', '', '', ''],
-      ['Risk ID', 'Category', 'Description', 'Probability (1-5)', 'Impact (1-5)', 'Risk Score', 'Risk Level', 'Cost Impact ($)', 'Mitigation Action', 'Owner', 'Status'],
+      ['Risk ID', 'Category', 'Description', 'Probability (1-5)', 'Impact (1-5)', 'Risk Score', 'Risk Level', `Cost Impact (${cur})`, 'Mitigation Action', 'Owner', 'Status'],
       ...risks.map((r) => [
         r.id,
         r.category,

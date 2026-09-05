@@ -73,15 +73,20 @@ function saveLocalBackupMetadata(docs: ProjectDocument[]): void {
 }
 
 /**
- * Generate sequential unique Document ID in format DOC-YYYY-XXXXXX
+ * Generate sequential unique Drawing/Document ID in persistent format DRW-0001, DRW-0002, etc.
  */
 export function generateDocumentId(existingDocs: ProjectDocument[]): string {
-  const currentYear = new Date().getFullYear();
-  const yearPrefix = `DOC-${currentYear}-`;
-
   let maxNum = 0;
   existingDocs.forEach((doc) => {
-    if (doc.id?.startsWith(yearPrefix)) {
+    if (doc.id?.startsWith('DRW-')) {
+      const parts = doc.id.split('-');
+      if (parts.length >= 2) {
+        const num = parseInt(parts[1], 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    } else if (doc.id?.startsWith('DOC-')) {
       const parts = doc.id.split('-');
       if (parts.length >= 3) {
         const num = parseInt(parts[2], 10);
@@ -92,8 +97,8 @@ export function generateDocumentId(existingDocs: ProjectDocument[]): string {
     }
   });
 
-  const nextNum = (maxNum + 1).toString().padStart(6, '0');
-  return `${yearPrefix}${nextNum}`;
+  const nextNum = (maxNum + 1).toString().padStart(4, '0');
+  return `DRW-${nextNum}`;
 }
 
 /**
@@ -137,14 +142,22 @@ export async function extractFileTechnicalMetadata(file: File): Promise<{
     previewType = 'pdf';
     isVector = true;
     try {
-      const buffer = await file.slice(0, Math.min(file.size, 1024 * 1024 * 2)).arrayBuffer();
+      // Read first 4MB for PDF metadata inspection
+      const buffer = await file.slice(0, Math.min(file.size, 1024 * 1024 * 4)).arrayBuffer();
       const text = new TextDecoder('latin1').decode(buffer);
-      // Rough page count estimation from PDF catalog /Count or /Type /Page
-      const pageMatches = text.match(/\/Type\s*\/Page\b/g);
-      if (pageMatches && pageMatches.length > 0) {
-        pageCount = pageMatches.length;
+      
+      // Look for /Type /Pages /Count N first (the root page tree count)
+      const countMatch = text.match(/\/Type\s*\/Pages[^>]*\/Count\s+(\d+)/i) || text.match(/\/Count\s+(\d+)/i);
+      if (countMatch && parseInt(countMatch[1], 10) > 0) {
+        pageCount = parseInt(countMatch[1], 10);
       } else {
-        pageCount = 1;
+        // Fallback: match individual /Type /Page occurrences
+        const pageMatches = text.match(/\/Type\s*\/Page\b/g);
+        if (pageMatches && pageMatches.length > 0) {
+          pageCount = pageMatches.length;
+        } else {
+          pageCount = 1;
+        }
       }
       previewDataUrl = URL.createObjectURL(file);
     } catch {
@@ -887,5 +900,146 @@ Uploaded Date: ${doc.uploadDate}
     }
 
     return testDocs;
+  },
+
+  /**
+   * Process an uploaded drawing document with AI or format parser
+   */
+  async processDrawingWithAI(docId: string): Promise<{
+    success: boolean;
+    error?: string;
+    status: 'PROCESSED' | 'PARTIALLY PROCESSED' | 'FAILED' | 'UPLOADED';
+    elementsCount: number;
+    openItemsCount: number;
+    message?: string;
+    extractedData?: any;
+  }> {
+    const doc = await this.getDocumentById(docId);
+    if (!doc) {
+      return {
+        success: false,
+        error: `Document with ID ${docId} not found.`,
+        status: 'FAILED',
+        elementsCount: 0,
+        openItemsCount: 0,
+      };
+    }
+
+    // Mark as PROCESSING
+    await this.updateDocumentMetadata(docId, {
+      status: 'PROCESSING',
+      analysisStatus: 'ANALYZING',
+    });
+
+    try {
+      // If DWG, DXF, or IFC without server-side binary geometry engine
+      if (doc.fileFormat === 'DWG' || doc.fileFormat === 'IFC') {
+        const parserMsg = 'File uploaded successfully, but this file type requires a compatible parser before quantity extraction.';
+        await this.updateDocumentMetadata(docId, {
+          status: 'UPLOADED',
+          analysisStatus: 'NOT_ANALYZED',
+          notes: doc.notes ? `${doc.notes}\n${parserMsg}` : parserMsg,
+        });
+        return {
+          success: true,
+          status: 'UPLOADED',
+          elementsCount: 0,
+          openItemsCount: 0,
+          message: parserMsg,
+        };
+      }
+
+      // Read real binary blob from IndexedDB
+      const blob = await this.getDocumentOriginalBlob(docId);
+      let base64Data = '';
+      let mimeType = 'application/pdf';
+
+      if (blob) {
+        mimeType = blob.type || (doc.fileFormat === 'PDF' ? 'application/pdf' : 'image/png');
+        base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } else if (doc.previewDataUrl && doc.previewDataUrl.startsWith('data:')) {
+        base64Data = doc.previewDataUrl;
+        mimeType = doc.previewDataUrl.split(';')[0].replace('data:', '') || 'image/png';
+      }
+
+      // Call the real server-side AI drawing analyzer endpoint
+      const response = await fetch('/api/analyze-drawing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          drawingMeta: {
+            id: doc.id,
+            drawingNumber: doc.drawingNumber,
+            title: doc.title,
+            revision: doc.revision,
+          },
+          fileBase64: base64Data,
+          mimeType,
+          discipline: doc.discipline,
+          level: doc.level,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        const errorMsg = result.error || 'Drawing processing failed on server.';
+        await this.updateDocumentMetadata(docId, {
+          status: 'FAILED',
+          analysisStatus: 'FAILED',
+          notes: `Processing Failed: ${errorMsg}`,
+        });
+        return {
+          success: false,
+          error: errorMsg,
+          status: 'FAILED',
+          elementsCount: 0,
+          openItemsCount: 0,
+        };
+      }
+
+      const extractedElements = result.data?.elements || [];
+      const extractedOpenItems = result.data?.openItems || [];
+      const extractedSchedules = result.data?.detectedSchedules || [];
+
+      const status = extractedElements.length > 0 ? 'PROCESSED' : 'PARTIALLY PROCESSED';
+
+      await this.updateDocumentMetadata(docId, {
+        status,
+        analysisStatus: 'ANALYZED',
+        detectedElementsCount: extractedElements.length,
+        openItemsCount: extractedOpenItems.length,
+        notes: result.data?.summary || doc.notes,
+      });
+
+      return {
+        success: true,
+        status,
+        elementsCount: extractedElements.length,
+        openItemsCount: extractedOpenItems.length,
+        message: `Successfully processed drawing. Detected ${extractedElements.length} elements, ${extractedOpenItems.length} open items, and ${extractedSchedules.length} schedules.`,
+        extractedData: result.data,
+      };
+    } catch (err: any) {
+      console.error('Document processing error:', err);
+      const errorMsg = err.message || 'Network or engine error during processing.';
+      await this.updateDocumentMetadata(docId, {
+        status: 'FAILED',
+        analysisStatus: 'FAILED',
+        notes: `Processing Failed: ${errorMsg}`,
+      });
+      return {
+        success: false,
+        error: errorMsg,
+        status: 'FAILED',
+        elementsCount: 0,
+        openItemsCount: 0,
+      };
+    }
   },
 };

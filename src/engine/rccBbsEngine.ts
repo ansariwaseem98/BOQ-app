@@ -519,14 +519,14 @@ export function generateRebarSummaryByDiameter(
 
   let grandTotalWeight = 0;
 
-  for (const bar of rebarRecords) {
-    if (bar.isBlocked) continue; // Skip blocked bars from verified totals
+  for (const bar of rebarRecords || []) {
+    if (!bar || bar.isBlocked) continue; // Skip blocked bars from verified totals
     const d = bar.diameterMm || 0;
     const curr = map.get(d) || { count: 0, length: 0, weight: 0 };
-    curr.count += bar.totalNumberOfBars;
-    curr.length += bar.totalLengthM;
-    curr.weight += bar.totalWeightKg;
-    grandTotalWeight += bar.totalWeightKg;
+    curr.count += bar.totalNumberOfBars || 0;
+    curr.length += bar.totalLengthM || 0;
+    curr.weight += bar.totalWeightKg || 0;
+    grandTotalWeight += bar.totalWeightKg || 0;
     map.set(d, curr);
   }
 
@@ -577,10 +577,10 @@ export function generateRebarSummaryByMember(
     const matchingElements = elements.filter((e) => e.elementType === cat || (cat === 'Other' && !['Footing','Foundation','Pile Cap','Pedestal','Column','Beam','Slab','RCC Wall','Staircase'].includes(e.elementType)));
     const matchingRebar = rebarRecords.filter((r) => r.elementType === cat || (cat === 'Other' && !['Footing','Foundation','Pile Cap','Pedestal','Column','Beam','Slab','RCC Wall','Staircase'].includes(r.elementType)));
 
-    const concreteVol = matchingElements.reduce((sum, e) => sum + (e.isBlocked ? 0 : e.netVolumeM3), 0);
-    const barsCount = matchingRebar.reduce((sum, r) => sum + (r.isBlocked ? 0 : r.totalNumberOfBars), 0);
-    const rebarLength = matchingRebar.reduce((sum, r) => sum + (r.isBlocked ? 0 : r.totalLengthM), 0);
-    const rebarWeight = matchingRebar.reduce((sum, r) => sum + (r.isBlocked ? 0 : r.totalWeightKg), 0);
+    const concreteVol = (matchingElements || []).reduce((sum, e) => sum + (e && !e.isBlocked ? (e.netVolumeM3 || 0) : 0), 0);
+    const barsCount = (matchingRebar || []).reduce((sum, r) => sum + (r && !r.isBlocked ? (r.totalNumberOfBars || 0) : 0), 0);
+    const rebarLength = (matchingRebar || []).reduce((sum, r) => sum + (r && !r.isBlocked ? (r.totalLengthM || 0) : 0), 0);
+    const rebarWeight = (matchingRebar || []).reduce((sum, r) => sum + (r && !r.isBlocked ? (r.totalWeightKg || 0) : 0), 0);
 
     const density = concreteVol > 0 ? rebarWeight / concreteVol : 0;
 

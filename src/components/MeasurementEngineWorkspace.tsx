@@ -678,8 +678,8 @@ export const MeasurementEngineWorkspace: React.FC<MeasurementEngineWorkspaceProp
                     <th className="py-3.5 px-4">Description</th>
                     <th className="py-3.5 px-4 text-center">Calcs Count</th>
                     <th className="py-3.5 px-4 text-right">Aggregated Quantity</th>
-                    <th className="py-3.5 px-4 text-right">Unit Rate ($)</th>
-                    <th className="py-3.5 px-4 text-right">Total Amount ($)</th>
+                    <th className="py-3.5 px-4 text-right">Unit Rate (AED)</th>
+                    <th className="py-3.5 px-4 text-right">Total Amount (AED)</th>
                     <th className="py-3.5 px-4 text-center">BOQ Status</th>
                   </tr>
                 </thead>
@@ -803,12 +803,12 @@ export const MeasurementEngineWorkspace: React.FC<MeasurementEngineWorkspaceProp
                 </span>
                 <div className="space-y-1.5 text-xs">
                   <div className="p-2 bg-slate-950 rounded border border-slate-800">
-                    <span className="text-slate-200 font-semibold block">BOQ-MAS-01 @ $145/m³</span>
-                    <span className="font-mono text-emerald-400 font-bold">$537.23</span>
+                    <span className="text-slate-200 font-semibold block">BOQ-MAS-01 @ AED 145/m³</span>
+                    <span className="font-mono text-emerald-400 font-bold">AED 537.23</span>
                   </div>
                   <div className="p-2 bg-slate-950 rounded border border-slate-800">
-                    <span className="text-slate-200 font-semibold block">BOQ-PLAS-01 @ $18/m²</span>
-                    <span className="font-mono text-emerald-400 font-bold">$579.96</span>
+                    <span className="text-slate-200 font-semibold block">BOQ-PLAS-01 @ AED 18/m²</span>
+                    <span className="font-mono text-emerald-400 font-bold">AED 579.96</span>
                   </div>
                 </div>
               </div>

@@ -38,14 +38,14 @@ export const ClarificationWorkspace: React.FC<ClarificationWorkspaceProps> = ({
 
   // Keep selection synchronized when items change
   useEffect(() => {
-    if (openItems.length > 0 && (!selectedItemId || !openItems.some((i) => i.id === selectedItemId))) {
-      setSelectedItemId(openItems[0].id);
+    if (openItems && openItems.length > 0 && (!selectedItemId || !openItems.some((i) => i.id === selectedItemId))) {
+      setSelectedItemId(openItems[0]?.id || '');
     }
   }, [openItems, selectedItemId]);
 
   useEffect(() => {
-    if (conflicts.length > 0 && (!selectedConflictId || !conflicts.some((c) => c.id === selectedConflictId))) {
-      setSelectedConflictId(conflicts[0].id);
+    if (conflicts && conflicts.length > 0 && (!selectedConflictId || !conflicts.some((c) => c.id === selectedConflictId))) {
+      setSelectedConflictId(conflicts[0]?.id || '');
     }
   }, [conflicts, selectedConflictId]);
 

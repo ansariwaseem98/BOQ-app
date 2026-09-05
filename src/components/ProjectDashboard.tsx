@@ -21,7 +21,13 @@ import {
   ShieldCheck,
   Archive,
   RotateCcw,
-  FolderOpen
+  FolderOpen,
+  Upload,
+  Sparkles,
+  PenTool,
+  History,
+  FolderArchive,
+  Save
 } from 'lucide-react';
 import { ProjectRecord } from '../types';
 import { DocumentStorageService } from '../services/documentStorage';
@@ -32,12 +38,18 @@ interface ProjectDashboardProps {
   onOpenProjectList: () => void;
   onCreateNewProject: () => void;
   onToggleArchive: () => void;
+  onOpenVersions?: () => void;
+  onOpenBackup?: () => void;
+  onManualSave?: () => void;
   // Module navigation triggers
+  onNavigateToProjectInfo?: () => void;
   onNavigateToDrawings?: () => void;
   onNavigateToIntelligence?: () => void;
   onNavigateToTakeoff?: () => void;
   onNavigateToMeasurementEngine?: () => void;
+  onNavigateToWorkspace?: () => void;
   onNavigateToSteel?: () => void;
+  onNavigateToRoofing?: () => void;
   onNavigateToArchitectural?: () => void;
   onNavigateToMep?: () => void;
   onNavigateToBoq?: () => void;
@@ -45,6 +57,12 @@ interface ProjectDashboardProps {
   onNavigateToTender?: () => void;
   onNavigateToBbs?: () => void;
   onNavigateToOpenItems?: () => void;
+  onNavigateToConflicts?: () => void;
+  onNavigateToRevisions?: () => void;
+  onNavigateToReports?: () => void;
+  onNavigateToExports?: () => void;
+  onNavigateToSettings?: () => void;
+  onOpenPhase16Integration?: () => void;
 }
 
 export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
@@ -53,11 +71,17 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
   onOpenProjectList,
   onCreateNewProject,
   onToggleArchive,
+  onOpenVersions,
+  onOpenBackup,
+  onManualSave,
+  onNavigateToProjectInfo,
   onNavigateToDrawings,
   onNavigateToIntelligence,
   onNavigateToTakeoff,
   onNavigateToMeasurementEngine,
+  onNavigateToWorkspace,
   onNavigateToSteel,
+  onNavigateToRoofing,
   onNavigateToArchitectural,
   onNavigateToMep,
   onNavigateToBoq,
@@ -65,6 +89,12 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
   onNavigateToTender,
   onNavigateToBbs,
   onNavigateToOpenItems,
+  onNavigateToConflicts,
+  onNavigateToRevisions,
+  onNavigateToReports,
+  onNavigateToExports,
+  onNavigateToSettings,
+  onOpenPhase16Integration,
 }) => {
   const isArchived = project.status === 'Archived';
   const [drawingCount, setDrawingCount] = useState<number>(0);
@@ -122,6 +152,59 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
               </>
             )}
           </button>
+
+          {onNavigateToDrawings && (
+            <button
+              onClick={onNavigateToDrawings}
+              className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-sm ring-2 ring-blue-300/40 cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5 text-blue-200" />
+              <span>+ UPLOAD DRAWINGS</span>
+            </button>
+          )}
+
+          {onOpenPhase16Integration && (
+            <button
+              onClick={onOpenPhase16Integration}
+              className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center gap-1.5 transition-colors shadow-2xs ring-2 ring-indigo-300/40"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>PHASE 16 INTEGRATION CENTER</span>
+            </button>
+          )}
+
+          {onManualSave && (
+            <button
+              onClick={onManualSave}
+              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 transition-colors shadow-2xs"
+              title="Force full project persistence & snapshot"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>SAVE PROJECT</span>
+            </button>
+          )}
+
+          {onOpenVersions && (
+            <button
+              onClick={onOpenVersions}
+              className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-200"
+              title="Project Version Checkpoints & Rollback"
+            >
+              <History className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Versions</span>
+            </button>
+          )}
+
+          {onOpenBackup && (
+            <button
+              onClick={onOpenBackup}
+              className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-200"
+              title="Export / Import Project Backup File"
+            >
+              <FolderArchive className="w-3.5 h-3.5 text-slate-600" />
+              <span>Backup</span>
+            </button>
+          )}
 
           <button
             onClick={onEditProject}
@@ -322,17 +405,53 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
         </div>
       </div>
 
+      {/* Real Drawing Intake & CAD Parsing Pipeline Banner */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 rounded-2xl p-6 text-white shadow-md border border-indigo-800/40 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
+              Phase 17A Intake Pipeline
+            </span>
+            <span className="text-xs text-indigo-200">
+              • Isolated to Project: <strong className="font-mono text-white">{project.id}</strong>
+            </span>
+          </div>
+          <h3 className="text-lg sm:text-xl font-black tracking-tight text-white">
+            Upload & Process Project Construction Drawings
+          </h3>
+          <p className="text-xs text-indigo-100/80 max-w-2xl leading-relaxed">
+            Intake real multi-page PDF drawing sets, CAD architectural/structural layouts (DWG, DXF, IFC), or site hand sketches (PNG, JPG). Real AI-assisted takeoff extraction engine.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          <button
+            onClick={onNavigateToDrawings}
+            className="px-5 py-2.5 rounded-xl bg-white text-slate-900 font-black text-xs hover:bg-indigo-50 shadow-md transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <Upload className="w-4 h-4 text-indigo-600" />
+            <span>+ UPLOAD DRAWINGS</span>
+          </button>
+          <button
+            onClick={onNavigateToDrawings}
+            className="px-4 py-2.5 rounded-xl bg-indigo-900/80 hover:bg-indigo-800/80 text-white font-bold text-xs border border-indigo-700 transition-colors flex items-center gap-2 cursor-pointer"
+          >
+            <PenTool className="w-4 h-4 text-amber-300" />
+            <span>UPLOAD HAND SKETCH</span>
+          </button>
+        </div>
+      </div>
+
       {/* Module Status Cards (Strictly 0 for fresh project) */}
       <div className="space-y-3">
         <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
           Project Takeoff Modules & Engineering Status
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
           {/* 1. Drawings */}
           <div
             onClick={onNavigateToDrawings}
-            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2"
           >
             <div className="flex items-center justify-between text-slate-500">
               <span className="text-xs font-semibold">Drawings</span>
@@ -349,14 +468,14 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
           {/* 2. Drawing Intelligence */}
           <div
             onClick={onNavigateToIntelligence || onNavigateToDrawings}
-            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2"
           >
             <div className="flex items-center justify-between text-slate-500">
-              <span className="text-xs font-semibold">Intelligence</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span className="text-xs font-semibold">AI Intelligence</span>
+              <Sparkles className="w-4 h-4 text-indigo-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 font-mono">Phase 3</p>
+              <p className="text-2xl font-black text-slate-900 font-mono">Vision</p>
               <p className="text-[11px] text-slate-400 mt-0.5">Drawing analysis engine</p>
             </div>
           </div>
@@ -376,67 +495,37 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
             </div>
           </div>
 
-          {/* 3B. Professional Measurement & Calculation Engine (Phase 15A) */}
+          {/* 4. Professional Measurement & Calculation Engine (Phase 15A) */}
           <div
             onClick={onNavigateToMeasurementEngine || onNavigateToTakeoff}
             className="bg-white border border-indigo-300 rounded-xl p-3.5 shadow-2xs hover:border-indigo-500 hover:shadow-sm transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-100/40 to-transparent"
           >
             <div className="flex items-center justify-between text-indigo-800">
-              <span className="text-xs font-extrabold">Calc Engine</span>
+              <span className="text-xs font-extrabold">Calculations</span>
               <span className="text-[10px] font-mono font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded shadow-2xs">Phase 15A</span>
             </div>
             <div>
-              <p className="text-2xl font-black text-indigo-950 font-mono">25 Tests</p>
+              <p className="text-2xl font-black text-indigo-950 font-mono">25 Rules</p>
               <p className="text-[11px] text-indigo-700 font-semibold mt-0.5">Deterministic Math & Trace</p>
             </div>
           </div>
 
-          {/* 4. Steel & Roof Engine (Phase 6) */}
+          {/* 5. RCC Canvas Workspace */}
           <div
-            onClick={onNavigateToSteel}
-            className="bg-white border border-indigo-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-50/20 to-transparent"
+            onClick={onNavigateToWorkspace || onNavigateToDrawings}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2"
           >
-            <div className="flex items-center justify-between text-indigo-700">
-              <span className="text-xs font-bold">Steel & Roof</span>
-              <span className="text-[10px] font-mono font-bold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">Phase 6</span>
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-xs font-semibold">RCC Canvas</span>
+              <Layers className="w-4 h-4 text-indigo-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-indigo-950 font-mono">Engine</p>
-              <p className="text-[11px] text-indigo-600 mt-0.5">Members, purlins & roof</p>
+              <p className="text-2xl font-black text-slate-900 font-mono">CAD</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Interactive takeoff editor</p>
             </div>
           </div>
 
-          {/* 5. Masonry, DPC, Openings & Finishes Engine (Phase 15C) */}
-          <div
-            onClick={onNavigateToArchitectural}
-            className="bg-white border border-indigo-300 rounded-xl p-3.5 shadow-2xs hover:border-indigo-500 hover:shadow-sm transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-100/40 to-transparent"
-          >
-            <div className="flex items-center justify-between text-indigo-800">
-              <span className="text-xs font-extrabold">Masonry & Finishes</span>
-              <span className="text-[10px] font-mono font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded shadow-2xs">Phase 15C</span>
-            </div>
-            <div>
-              <p className="text-2xl font-black text-indigo-950 font-mono">16 Schedules</p>
-              <p className="text-[11px] text-indigo-700 font-semibold mt-0.5">DPC, Plaster, Paint, Zero Guess</p>
-            </div>
-          </div>
-
-          {/* 6. MEP Quantity Takeoff Engine (Phase 8) */}
-          <div
-            onClick={onNavigateToMep}
-            className="bg-white border border-amber-200 rounded-xl p-3.5 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-amber-50/40 to-transparent"
-          >
-            <div className="flex items-center justify-between text-amber-800">
-              <span className="text-xs font-bold">MEP Takeoff</span>
-              <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded">Phase 8</span>
-            </div>
-            <div>
-              <p className="text-2xl font-black text-amber-950 font-mono">10 Disciplines</p>
-              <p className="text-[11px] text-amber-700 mt-0.5">Electrical, HVAC, Plumbing, Fire, ELV</p>
-            </div>
-          </div>
-
-          {/* 7. RCC & BBS Rebar Engine (Phase 15B) */}
+          {/* 6. RCC & BBS Rebar Engine (Phase 15B) */}
           <div
             onClick={onNavigateToBbs}
             className="bg-white border border-indigo-300 rounded-xl p-3.5 shadow-2xs hover:border-indigo-500 hover:shadow-sm transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-100/30 to-transparent"
@@ -451,22 +540,67 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
             </div>
           </div>
 
-          {/* 6. Open Items */}
+          {/* 7. Steel Structure (Phase 6) */}
           <div
-            onClick={onNavigateToOpenItems}
-            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-amber-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+            onClick={onNavigateToSteel}
+            className="bg-white border border-indigo-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-50/20 to-transparent"
           >
-            <div className="flex items-center justify-between text-slate-500">
-              <span className="text-xs font-semibold">Open Items</span>
-              <HelpCircle className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center justify-between text-indigo-700">
+              <span className="text-xs font-bold">Structural Steel</span>
+              <span className="text-[10px] font-mono font-bold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">Phase 6</span>
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 font-mono">0</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Pending queries</p>
+              <p className="text-2xl font-black text-indigo-950 font-mono">Engine</p>
+              <p className="text-[11px] text-indigo-600 mt-0.5">ISMB, beams & trusses</p>
             </div>
           </div>
 
-          {/* 7. BOQ Items */}
+          {/* 8. Roofing Takeoff */}
+          <div
+            onClick={onNavigateToRoofing || onNavigateToSteel}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2"
+          >
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-xs font-semibold">Roofing & Sheeting</span>
+              <Building2 className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-slate-900 font-mono">Slope</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Purlins, insulation & gutters</p>
+            </div>
+          </div>
+
+          {/* 9. Masonry, DPC, Openings & Finishes Engine (Phase 15C) */}
+          <div
+            onClick={onNavigateToArchitectural}
+            className="bg-white border border-indigo-300 rounded-xl p-3.5 shadow-2xs hover:border-indigo-500 hover:shadow-sm transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-100/40 to-transparent"
+          >
+            <div className="flex items-center justify-between text-indigo-800">
+              <span className="text-xs font-extrabold">Architectural</span>
+              <span className="text-[10px] font-mono font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded shadow-2xs">Phase 15C</span>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-indigo-950 font-mono">16 Schedules</p>
+              <p className="text-[11px] text-indigo-700 font-semibold mt-0.5">DPC, Plaster, Paint & Masonry</p>
+            </div>
+          </div>
+
+          {/* 10. MEP Quantity Takeoff Engine (Phase 8) */}
+          <div
+            onClick={onNavigateToMep}
+            className="bg-white border border-amber-200 rounded-xl p-3.5 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-amber-50/40 to-transparent"
+          >
+            <div className="flex items-center justify-between text-amber-800">
+              <span className="text-xs font-bold">MEP Takeoff</span>
+              <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded">Phase 8</span>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-amber-950 font-mono">10 Trades</p>
+              <p className="text-[11px] text-amber-700 mt-0.5">Electrical, HVAC, Fire & Plumbing</p>
+            </div>
+          </div>
+
+          {/* 11. BOQ Schedule */}
           <div
             onClick={onNavigateToBoq}
             className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
@@ -481,13 +615,13 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
             </div>
           </div>
 
-          {/* 8. Rate Analysis Engine (Phase 12) */}
+          {/* 12. Rate Analysis Engine (Phase 12) */}
           <div
             onClick={onNavigateToRateAnalysis}
             className="bg-white border border-emerald-200 rounded-xl p-3.5 shadow-2xs hover:border-emerald-400 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-emerald-50/40 to-transparent"
           >
             <div className="flex items-center justify-between text-emerald-800">
-              <span className="text-xs font-bold">Rate Analysis & Pricing</span>
+              <span className="text-xs font-bold">Rate Analysis</span>
               <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded">Phase 12</span>
             </div>
             <div>
@@ -496,18 +630,108 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
             </div>
           </div>
 
-          {/* 9. Tender Management (Phase 13) */}
+          {/* 13. Tender Management (Phase 13) */}
           <div
             onClick={onNavigateToTender}
             className="bg-white border border-indigo-300 rounded-xl p-3.5 shadow-2xs hover:border-indigo-500 hover:shadow-xs transition-all cursor-pointer space-y-2 bg-gradient-to-b from-indigo-50/60 to-transparent"
           >
             <div className="flex items-center justify-between text-indigo-900">
-              <span className="text-xs font-black">Tender & Bid Submission</span>
+              <span className="text-xs font-black">Tender Package</span>
               <span className="text-[10px] font-mono font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded">Phase 13</span>
             </div>
             <div>
-              <p className="text-2xl font-black text-indigo-950 font-mono">Package</p>
-              <p className="text-[11px] text-indigo-700 mt-0.5">Reconciliation, QA & 13-folder ZIP</p>
+              <p className="text-2xl font-black text-indigo-950 font-mono">Submission</p>
+              <p className="text-[11px] text-indigo-700 mt-0.5">Reconciliation & QA package</p>
+            </div>
+          </div>
+
+          {/* 14. Open Items */}
+          <div
+            onClick={onNavigateToOpenItems}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-amber-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+          >
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-xs font-semibold">Open Items & RFI</span>
+              <HelpCircle className="w-4 h-4 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-slate-900 font-mono">Log</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Pending clarifications & RFIs</p>
+            </div>
+          </div>
+
+          {/* 15. Drawing Conflicts */}
+          <div
+            onClick={onNavigateToConflicts || onNavigateToOpenItems}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-rose-300 hover:shadow-xs transition-all cursor-pointer space-y-2"
+          >
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-xs font-semibold">Conflicts Log</span>
+              <AlertCircle className="w-4 h-4 text-rose-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-slate-900 font-mono">Clashes</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Cross-discipline discrepancies</p>
+            </div>
+          </div>
+
+          {/* 16. Revision History */}
+          <div
+            onClick={onNavigateToRevisions}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2"
+          >
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-xs font-semibold">Revision History</span>
+              <RotateCcw className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-slate-900 font-mono">Addenda</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Quantity diff & tender addenda</p>
+            </div>
+          </div>
+
+          {/* 17. Reports Center */}
+          <div
+            onClick={onNavigateToReports}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2"
+          >
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-xs font-semibold">Reports Center</span>
+              <FileText className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-slate-900 font-mono">Reports</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Executive & audit documents</p>
+            </div>
+          </div>
+
+          {/* 18. Exports Center */}
+          <div
+            onClick={onNavigateToExports}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2"
+          >
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-xs font-semibold">Exports Center</span>
+              <Upload className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-slate-900 font-mono">Exports</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Excel, PDF, CSV & tender ZIP</p>
+            </div>
+          </div>
+
+          {/* 19. Project Settings */}
+          <div
+            onClick={onNavigateToSettings}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-indigo-400 hover:shadow-xs transition-all cursor-pointer space-y-2"
+          >
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-xs font-semibold">Project Settings</span>
+              <Settings2 className="w-4 h-4 text-slate-700" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-slate-900 font-mono">Config</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Units, standards & rules</p>
             </div>
           </div>
         </div>

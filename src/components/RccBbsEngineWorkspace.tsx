@@ -557,7 +557,7 @@ export const RccBbsEngineWorkspace: React.FC<RccBbsEngineWorkspaceProps> = ({
                       {bar.unitWeightKgM.toFixed(3)}
                     </td>
                     <td className="py-3 px-3 font-mono font-bold text-right text-indigo-900 bg-indigo-50/30">
-                      {bar.totalWeightKg.toFixed(2)}
+                      {(bar.totalWeightKg ?? 0).toFixed(2)}
                     </td>
                     <td className="py-3 px-2 text-center">
                       <span
@@ -719,7 +719,7 @@ export const RccBbsEngineWorkspace: React.FC<RccBbsEngineWorkspaceProps> = ({
                     <td className="py-3 px-4 text-center text-slate-700">{item.totalBarsCount}</td>
                     <td className="py-3 px-4 text-right text-slate-800">{item.totalLengthM.toFixed(2)}</td>
                     <td className="py-3 px-4 text-right font-bold text-indigo-900 bg-indigo-50/30">
-                      {item.totalWeightKg.toFixed(2)}
+                      {(item.totalWeightKg ?? 0).toFixed(2)}
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-slate-900">
                       {item.totalWeightTonnes.toFixed(3)}
@@ -787,7 +787,7 @@ export const RccBbsEngineWorkspace: React.FC<RccBbsEngineWorkspaceProps> = ({
                     <td className="py-3 px-4 text-center text-slate-700">{item.totalBarsCount}</td>
                     <td className="py-3 px-4 text-right text-slate-800">{item.totalLengthM.toFixed(2)}</td>
                     <td className="py-3 px-4 text-right font-bold text-indigo-900 bg-indigo-50/30">
-                      {item.totalWeightKg.toFixed(2)}
+                      {(item.totalWeightKg ?? 0).toFixed(2)}
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-slate-900">{item.totalWeightTonnes.toFixed(3)}</td>
                     <td className="py-3 px-4 text-right font-bold text-emerald-800 bg-emerald-50/30">

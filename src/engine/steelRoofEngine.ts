@@ -949,45 +949,45 @@ export function cascadeRoofGeometricChange(
 // 9. SUMMARY KPI GENERATOR
 // =========================================================================
 export function summarizeSteelRoofMetrics(
-  members: SteelMemberRecord[],
-  plates: SteelPlateRecord[],
-  bolts: BoltGroupRecord[],
-  purlins: PurlinRecord[],
-  girts: GirtRecord[],
-  bracing: BracingRecord[],
+  members: SteelMemberRecord[] = [],
+  plates: SteelPlateRecord[] = [],
+  bolts: BoltGroupRecord[] = [],
+  purlins: PurlinRecord[] = [],
+  girts: GirtRecord[] = [],
+  bracing: BracingRecord[] = [],
   roof: RoofGeometryRecord,
-  cladding: RoofCladdingRecord[],
-  skylights: SkylightRecord[],
-  flashings: FlashingAccessoryRecord[],
-  openItems: SteelOpenItem[],
-  conflicts: SteelConflict[]
+  cladding: RoofCladdingRecord[] = [],
+  skylights: SkylightRecord[] = [],
+  flashings: FlashingAccessoryRecord[] = [],
+  openItems: SteelOpenItem[] = [],
+  conflicts: SteelConflict[] = []
 ) {
-  const primarySteelKg = members
-    .filter((m) => m.category === 'Primary Steel' || m.memberType === 'Column' || m.memberType === 'Beam' || m.memberType === 'Rafter')
-    .reduce((sum, m) => sum + m.totalWeightKg, 0);
+  const primarySteelKg = (members || [])
+    .filter((m) => m && (m.category === 'Primary Steel' || m.memberType === 'Column' || m.memberType === 'Beam' || m.memberType === 'Rafter'))
+    .reduce((sum, m) => sum + (m?.totalWeightKg || 0), 0);
 
-  const secondarySteelKg = members
-    .filter((m) => m.category === 'Secondary Steel' || m.memberType === 'Tie Member' || m.memberType === 'Strut')
-    .reduce((sum, m) => sum + m.totalWeightKg, 0);
+  const secondarySteelKg = (members || [])
+    .filter((m) => m && (m.category === 'Secondary Steel' || m.memberType === 'Tie Member' || m.memberType === 'Strut'))
+    .reduce((sum, m) => sum + (m?.totalWeightKg || 0), 0);
 
-  const platesKg = plates.reduce((sum, p) => sum + p.weightKg, 0);
-  const purlinsKg = purlins.reduce((sum, p) => sum + p.totalWeightKg, 0);
-  const girtsKg = girts.reduce((sum, g) => sum + g.totalWeightKg, 0);
-  const bracingKg = bracing.reduce((sum, b) => sum + b.totalWeightKg, 0);
-  const miscSteelKg = members
-    .filter((m) => m.category === 'Miscellaneous Steel')
-    .reduce((sum, m) => sum + m.totalWeightKg, 0);
+  const platesKg = (plates || []).reduce((sum, p) => sum + (p?.weightKg || 0), 0);
+  const purlinsKg = (purlins || []).reduce((sum, p) => sum + (p?.totalWeightKg || 0), 0);
+  const girtsKg = (girts || []).reduce((sum, g) => sum + (g?.totalWeightKg || 0), 0);
+  const bracingKg = (bracing || []).reduce((sum, b) => sum + (b?.totalWeightKg || 0), 0);
+  const miscSteelKg = (members || [])
+    .filter((m) => m && m.category === 'Miscellaneous Steel')
+    .reduce((sum, m) => sum + (m?.totalWeightKg || 0), 0);
 
   const totalSteelKg = primarySteelKg + secondarySteelKg + platesKg + purlinsKg + girtsKg + bracingKg + miscSteelKg;
   const totalSteelTonnes = Number((totalSteelKg / 1000).toFixed(3));
 
-  const totalBoltsCount = bolts.reduce((sum, b) => sum + b.totalQuantity, 0);
-  const totalSkylightM2 = skylights.reduce((sum, s) => sum + s.totalAreaM2, 0);
-  const totalNetCladdingM2 = cladding.reduce((sum, c) => sum + c.netCladdingAreaM2, 0);
-  const totalFlashingsLengthM = flashings.reduce((sum, f) => sum + f.totalLengthM, 0);
+  const totalBoltsCount = (bolts || []).reduce((sum, b) => sum + (b?.totalQuantity || 0), 0);
+  const totalSkylightM2 = (skylights || []).reduce((sum, s) => sum + (s?.totalAreaM2 || 0), 0);
+  const totalNetCladdingM2 = (cladding || []).reduce((sum, c) => sum + (c?.netCladdingAreaM2 || 0), 0);
+  const totalFlashingsLengthM = (flashings || []).reduce((sum, f) => sum + (f?.totalLengthM || 0), 0);
 
-  const openItemsCount = openItems.filter((o) => o.status === 'OPEN').length;
-  const conflictsCount = conflicts.filter((c) => c.status === 'OPEN').length;
+  const openItemsCount = (openItems || []).filter((o) => o && o.status === 'OPEN').length;
+  const conflictsCount = (conflicts || []).filter((c) => c && c.status === 'OPEN').length;
   const verifiedMembersCount = members.filter((m) => m.verificationStatus === 'USER VERIFIED' || m.verificationStatus === 'FINAL').length;
   const blockedMembersCount = members.filter((m) => m.isBlocked).length;
 
@@ -1070,7 +1070,7 @@ export function calculateRoofCladdingTakeoff(input: any): any {
 }
 
 export function summarizeSteelRoofTakeoff(
-  members: any[],
+  members: any[] = [],
   arg2?: any,
   arg3?: any,
   arg4?: any,
@@ -1094,15 +1094,20 @@ export function summarizeSteelRoofTakeoff(
     flashings = arg5 || [];
   }
 
-  const totalWeightKg = members.reduce((sum, m) => sum + (m.totalWeightKg || 0), 0);
+  const safeMembers = members || [];
+  const safeCladdings = claddings || [];
+  const safeSkylights = skylights || [];
+  const safeFlashings = flashings || [];
+
+  const totalWeightKg = safeMembers.reduce((sum, m) => sum + (m?.totalWeightKg || 0), 0);
   const totalWeightTonnes = Number((totalWeightKg / 1000).toFixed(3));
-  const totalMembersCount = members.reduce((sum, m) => sum + (m.quantity || 1), 0);
-  const verifiedCount = members.filter((m) => !m.isBlocked).length;
-  const blockedCount = members.filter((m) => m.isBlocked).length;
+  const totalMembersCount = safeMembers.reduce((sum, m) => sum + (m?.quantity || 1), 0);
+  const verifiedCount = safeMembers.filter((m) => m && !m.isBlocked).length;
+  const blockedCount = safeMembers.filter((m) => m && m.isBlocked).length;
   const grossRoofAreaM2 = roofGeo?.slopingRoofAreaM2 || roofGeo?.grossRoofAreaM2 || 0;
-  const netCladdingAreaM2 = claddings.reduce((sum, c) => sum + (c.netCladdingAreaM2 || 0), 0);
-  const skylightAreaM2 = skylights.reduce((sum, s) => sum + (s.totalAreaM2 || 0), 0);
-  const totalFlashingsLengthM = flashings.reduce((sum, f) => sum + (f.totalLengthM || f.lengthM || 0), 0);
+  const netCladdingAreaM2 = safeCladdings.reduce((sum, c) => sum + (c?.netCladdingAreaM2 || 0), 0);
+  const skylightAreaM2 = safeSkylights.reduce((sum, s) => sum + (s?.totalAreaM2 || 0), 0);
+  const totalFlashingsLengthM = safeFlashings.reduce((sum, f) => sum + (f?.totalLengthM || f?.lengthM || 0), 0);
 
   return {
     totalWeightKg,
@@ -1114,11 +1119,11 @@ export function summarizeSteelRoofTakeoff(
     netCladdingAreaM2,
     skylightAreaM2,
     totalFlashingsLengthM,
-    primarySteelTonnes: Number((members.filter((m) => m.category === 'Primary Steel').reduce((s, m) => s + (m.totalWeightKg || 0), 0) / 1000).toFixed(3)),
-    secondarySteelTonnes: Number((members.filter((m) => m.category === 'Secondary Steel').reduce((s, m) => s + (m.totalWeightKg || 0), 0) / 1000).toFixed(3)),
-    platesTonnes: Number((members.filter((m) => m.category === 'Base Plates' || m.category === 'Gusset Plates').reduce((s, m) => s + (m.totalWeightKg || 0), 0) / 1000).toFixed(3)),
-    purlinsTonnes: Number((members.filter((m) => m.category === 'Purlins').reduce((s, m) => s + (m.totalWeightKg || 0), 0) / 1000).toFixed(3)),
-    girtsTonnes: Number((members.filter((m) => m.category === 'Girts').reduce((s, m) => s + (m.totalWeightKg || 0), 0) / 1000).toFixed(3)),
-    bracingTonnes: Number((members.filter((m) => m.category === 'Bracing').reduce((s, m) => s + (m.totalWeightKg || 0), 0) / 1000).toFixed(3)),
+    primarySteelTonnes: Number((safeMembers.filter((m) => m && m.category === 'Primary Steel').reduce((s, m) => s + (m?.totalWeightKg || 0), 0) / 1000).toFixed(3)),
+    secondarySteelTonnes: Number((safeMembers.filter((m) => m && m.category === 'Secondary Steel').reduce((s, m) => s + (m?.totalWeightKg || 0), 0) / 1000).toFixed(3)),
+    platesTonnes: Number((safeMembers.filter((m) => m && (m.category === 'Base Plates' || m.category === 'Gusset Plates')).reduce((s, m) => s + (m?.totalWeightKg || 0), 0) / 1000).toFixed(3)),
+    purlinsTonnes: Number((safeMembers.filter((m) => m && m.category === 'Purlins').reduce((s, m) => s + (m?.totalWeightKg || 0), 0) / 1000).toFixed(3)),
+    girtsTonnes: Number((safeMembers.filter((m) => m && m.category === 'Girts').reduce((s, m) => s + (m?.totalWeightKg || 0), 0) / 1000).toFixed(3)),
+    bracingTonnes: Number((safeMembers.filter((m) => m && m.category === 'Bracing').reduce((s, m) => s + (m?.totalWeightKg || 0), 0) / 1000).toFixed(3)),
   };
 }

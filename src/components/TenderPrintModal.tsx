@@ -121,7 +121,7 @@ export const TenderPrintModal: React.FC<TenderPrintModalProps> = ({
               <span>Reconciled & Locked</span>
             </div>
             <div className="text-2xl font-black text-amber-300">
-              USD ${commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {tenderInfo.currency || 'AED'} {commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="text-xs text-slate-300 font-serif italic border-t border-slate-700 pt-2">
               Amount in words: <strong className="text-white not-italic">{commercialSummary.tenderGrandTotalInWords}</strong>
@@ -138,7 +138,7 @@ export const TenderPrintModal: React.FC<TenderPrintModalProps> = ({
                 <tr>
                   <th className="py-2 px-3">Item</th>
                   <th className="py-2 px-3">Commercial Category / Description</th>
-                  <th className="py-2 px-3 text-right">Amount (USD)</th>
+                  <th className="py-2 px-3 text-right">Amount ({tenderInfo.currency || 'AED'})</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -146,70 +146,70 @@ export const TenderPrintModal: React.FC<TenderPrintModalProps> = ({
                   <td className="py-1.5 px-3 font-mono">1.0</td>
                   <td className="py-1.5 px-3">Base Measured BOQ Direct & Indirect Works</td>
                   <td className="py-1.5 px-3 text-right font-mono">
-                    ${commercialSummary.baseBoqMeasuredTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {commercialSummary.baseBoqMeasuredTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
                 <tr>
                   <td className="py-1.5 px-3 font-mono">2.0</td>
                   <td className="py-1.5 px-3">Provisional Sums ({provisionalSums.length} Defined Allocations)</td>
                   <td className="py-1.5 px-3 text-right font-mono">
-                    ${commercialSummary.provisionalSumsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {commercialSummary.provisionalSumsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
                 <tr>
                   <td className="py-1.5 px-3 font-mono">3.0</td>
                   <td className="py-1.5 px-3">Prime Cost Items ({primeCostItems.length} Nominated Packages with Attendance)</td>
                   <td className="py-1.5 px-3 text-right font-mono">
-                    ${commercialSummary.primeCostTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {commercialSummary.primeCostTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
                 <tr>
                   <td className="py-1.5 px-3 font-mono">4.0</td>
                   <td className="py-1.5 px-3">Selected Optional Additions</td>
                   <td className="py-1.5 px-3 text-right font-mono">
-                    ${commercialSummary.selectedOptionsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {commercialSummary.selectedOptionsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
                 <tr className="bg-slate-50 font-semibold">
                   <td className="py-1.5 px-3 font-mono">5.0</td>
                   <td className="py-1.5 px-3">SUBTOTAL BEFORE RISK & DISCOUNT</td>
                   <td className="py-1.5 px-3 text-right font-mono">
-                    ${commercialSummary.subtotalBeforeRiskDiscount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {commercialSummary.subtotalBeforeRiskDiscount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
                 <tr>
                   <td className="py-1.5 px-3 font-mono">6.0</td>
                   <td className="py-1.5 px-3">Risk Allowance Contingency ({commercialSummary.riskAllowancePercent.toFixed(2)}%)</td>
                   <td className="py-1.5 px-3 text-right font-mono text-amber-700">
-                    +${commercialSummary.riskAllowanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    +{commercialSummary.riskAllowanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
                 <tr>
                   <td className="py-1.5 px-3 font-mono">7.0</td>
                   <td className="py-1.5 px-3">Commercial Volume Discount ({commercialSummary.discountPercent.toFixed(2)}%)</td>
                   <td className="py-1.5 px-3 text-right font-mono text-emerald-700">
-                    -${commercialSummary.discountAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    -{commercialSummary.discountAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
                 <tr className="bg-slate-50 font-semibold">
                   <td className="py-1.5 px-3 font-mono">8.0</td>
                   <td className="py-1.5 px-3">NET COMMERCIAL SUB-TOTAL</td>
                   <td className="py-1.5 px-3 text-right font-mono">
-                    ${commercialSummary.subtotalAfterDiscountRisk.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {commercialSummary.subtotalAfterDiscountRisk.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
                 <tr>
                   <td className="py-1.5 px-3 font-mono">9.0</td>
                   <td className="py-1.5 px-3">Statutory VAT / Sales Tax ({commercialSummary.taxVatPercent.toFixed(2)}%)</td>
                   <td className="py-1.5 px-3 text-right font-mono">
-                    +${commercialSummary.taxVatAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    +{commercialSummary.taxVatAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
                 <tr className="bg-indigo-50/80 font-bold text-indigo-950">
                   <td className="py-2 px-3 font-mono">10.0</td>
                   <td className="py-2 px-3">FINAL TENDER GRAND TOTAL</td>
                   <td className="py-2 px-3 text-right font-mono text-sm">
-                    ${commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {commercialSummary.tenderGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
               </tbody>

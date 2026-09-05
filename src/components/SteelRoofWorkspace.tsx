@@ -541,10 +541,10 @@ export const SteelRoofWorkspace: React.FC<SteelRoofWorkspaceProps> = ({
                             {m.quantity}
                           </td>
                           <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-900">
-                            {m.totalWeightTonnes.toFixed(3)}
+                            {(m.totalWeightTonnes ?? 0).toFixed(3)}
                           </td>
                           <td className="px-3 py-2.5 text-right font-mono text-slate-600">
-                            {m.totalWeightKg.toLocaleString()}
+                            {(m.totalWeightKg ?? 0).toLocaleString()}
                           </td>
                           <td className="px-3 py-2.5 text-slate-500 truncate max-w-[130px]">
                             {m.grid} ({m.level})
@@ -766,7 +766,7 @@ export const SteelRoofWorkspace: React.FC<SteelRoofWorkspaceProps> = ({
                               <td className="px-3 py-2 text-right font-mono text-slate-600">{p.widthMm}</td>
                               <td className="px-3 py-2 text-right font-mono font-bold text-slate-900">{p.thicknessMm}</td>
                               <td className="px-3 py-2 text-right font-mono font-bold text-slate-900">{p.quantity}</td>
-                              <td className="px-3 py-2 text-right font-mono font-bold text-indigo-700">{p.totalWeightKg.toFixed(2)} kg</td>
+                              <td className="px-3 py-2 text-right font-mono font-bold text-indigo-700">{(p.totalWeightKg ?? 0).toFixed(2)} kg</td>
                               <td className="px-3 py-2 font-mono text-[11px] text-slate-500 truncate max-w-[280px]" title={p.formulaWithValues}>
                                 {p.formulaWithValues}
                               </td>
@@ -859,7 +859,7 @@ export const SteelRoofWorkspace: React.FC<SteelRoofWorkspaceProps> = ({
                         <td className="px-3 py-2.5 font-mono text-slate-600">P-{m.id.slice(-3)}</td>
                         <td className="px-3 py-2.5 font-mono font-semibold text-slate-800">{m.section}</td>
                         <td className="px-3 py-2.5 text-right font-mono text-slate-900">{m.lengthM ? m.lengthM.toFixed(3) : '-'}</td>
-                        <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-900">{m.totalWeightKg.toLocaleString()} kg</td>
+                        <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-900">{(m.totalWeightKg ?? 0).toLocaleString()} kg</td>
                         <td className="px-3 py-2.5 font-mono text-[10px] text-slate-400">
                           {`3a9x_${m.id.toLowerCase()}_ifc4`}
                         </td>
@@ -1054,7 +1054,7 @@ export const SteelRoofWorkspace: React.FC<SteelRoofWorkspaceProps> = ({
                 <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
                   <span className="text-[10px] text-slate-500 block">Total Weight:</span>
                   <span className="font-mono font-bold text-indigo-700 text-xs">
-                    {selectedMember.totalWeightTonnes.toFixed(3)} T ({selectedMember.totalWeightKg.toFixed(0)} kg)
+                    {(selectedMember.totalWeightTonnes ?? 0).toFixed(3)} T ({Math.round(selectedMember.totalWeightKg ?? 0)} kg)
                   </span>
                 </div>
               </div>

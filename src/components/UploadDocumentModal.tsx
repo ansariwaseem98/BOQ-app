@@ -125,12 +125,18 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setSelectedFiles((prev) => [...prev, ...Array.from(e.target.files)]);
+      setSelectedFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   const handleRemoveFile = (index: number) => {
     setSelectedFiles((prev) => prev.filter((_, idx) => idx !== index));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async () => {

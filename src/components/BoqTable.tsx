@@ -43,7 +43,7 @@ export const BoqTable: React.FC<BoqTableProps> = ({
   onSelectElement,
   onExportExcel,
 }) => {
-  const currency = projectData?.tender?.currencySymbol || projectData?.contract?.currencySymbol || '$';
+  const currency = 'AED';
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSection, setSelectedSection] = useState<string>('All');
   const [editingRateItem, setEditingRateItem] = useState<BoqItem | null>(null);

@@ -86,17 +86,17 @@ export class RateAnalysisExcelExportEngine {
       ['Location:', project?.project?.location || 'Central Site Terminal', '', ''],
       ['Client:', project?.client?.name || 'Apex Real Estate Partners', '', ''],
       ['Lead Consultant:', project?.consultant?.leadConsultant || 'Astra Engineering Consultants', '', ''],
-      ['Currency:', 'USD ($)', '', ''],
+      ['Currency:', 'AED', '', ''],
       ['Pricing Revision:', report.pricingRevision, '', ''],
       ['Date of Build-up:', new Date().toISOString().split('T')[0], '', ''],
       ['Active Scenario:', scenario.name, '', ''],
       ['', '', '', ''],
       ['COMMERCIAL EXECUTIVE TOTALS', '', '', ''],
-      ['Total Direct Cost ($):', report.costElements.directCostTotal, '', ''],
-      ['Total Overhead ($):', report.costElements.overheadTotal, `(${report.costElements.overheadPercent.toFixed(1)}%)`, ''],
-      ['Total Profit Margin ($):', report.costElements.profitTotal, `(${report.costElements.profitPercent.toFixed(1)}%)`, ''],
-      ['Total Configured Tax / Duty ($):', report.costElements.taxTotal, `(${scenario.taxRatePercent}%)`, ''],
-      ['FINAL TENDER GRAND TOTAL ($):', report.tenderGrandTotal, '', ''],
+      ['Total Direct Cost (AED):', report.costElements.directCostTotal, '', ''],
+      ['Total Overhead (AED):', report.costElements.overheadTotal, `(${report.costElements.overheadPercent.toFixed(1)}%)`, ''],
+      ['Total Profit Margin (AED):', report.costElements.profitTotal, `(${report.costElements.profitPercent.toFixed(1)}%)`, ''],
+      ['Total Configured Tax / Duty (AED):', report.costElements.taxTotal, `(${scenario.taxRatePercent}%)`, ''],
+      ['FINAL TENDER GRAND TOTAL (AED):', report.tenderGrandTotal, '', ''],
       ['Amount in Words:', report.tenderTotalWords, '', ''],
       ['Pricing QA Status:', report.qaPassed ? 'PASSED — PRE-FLIGHT VERIFIED' : 'REVIEW REQUIRED', '', ''],
     ];
@@ -122,18 +122,18 @@ export class RateAnalysisExcelExportEngine {
         'Item Description',
         'Unit',
         'Verified Qty',
-        'Material ($)',
-        'Labour ($)',
-        'Equipment ($)',
-        'Subcontract ($)',
-        'Transport ($)',
-        'Other ($)',
-        'Direct Cost ($)',
-        'Overhead ($)',
-        'Profit ($)',
-        'Tax ($)',
-        'Final Unit Rate ($)',
-        'Total BOQ Amount ($)',
+        'Material (AED)',
+        'Labour (AED)',
+        'Equipment (AED)',
+        'Subcontract (AED)',
+        'Transport (AED)',
+        'Other (AED)',
+        'Direct Cost (AED)',
+        'Overhead (AED)',
+        'Profit (AED)',
+        'Tax (AED)',
+        'Final Unit Rate (AED)',
+        'Total BOQ Amount (AED)',
       ],
     ];
 
@@ -232,7 +232,7 @@ export class RateAnalysisExcelExportEngine {
   ) {
     const rows: any[][] = [
       ['DETAILED COMPONENT RATE BUILD-UP BREAKDOWN', '', '', '', '', '', '', '', '', ''],
-      ['Item Code', 'BOQ Description', 'Category', 'Component Description', 'Unit', 'Consumption', 'Unit Rate ($)', 'Wastage %', 'Component Amount ($)', 'Source'],
+      ['Item Code', 'BOQ Description', 'Category', 'Component Description', 'Unit', 'Consumption', 'Unit Rate (AED)', 'Wastage %', 'Component Amount (AED)', 'Source'],
     ];
 
     let rowNum = 3;
@@ -283,7 +283,7 @@ export class RateAnalysisExcelExportEngine {
       ['TENDER SUMMARY & COST ALLOCATION DASHBOARD', '', '', '', '', ''],
       ['', '', '', '', '', ''],
       ['COST ELEMENTS BREAKDOWN', '', '', '', '', ''],
-      ['Element', 'Total Cost ($)', '% of Tender Total', '', '', ''],
+      ['Element', 'Total Cost (AED)', '% of Tender Total', '', '', ''],
       ['Material Cost', report.costElements.materialTotal, `${report.costElements.materialPercent}%`, '', '', ''],
       ['Labour Cost', report.costElements.labourTotal, `${report.costElements.labourPercent}%`, '', '', ''],
       ['Equipment & Machinery Cost', report.costElements.equipmentTotal, `${report.costElements.equipmentPercent}%`, '', '', ''],
@@ -297,7 +297,7 @@ export class RateAnalysisExcelExportEngine {
       ['TENDER GRAND TOTAL', report.tenderGrandTotal, '100.0%', '', '', ''],
       ['', '', '', '', '', ''],
       ['COST BREAKDOWN BY DISCIPLINE', '', '', '', '', ''],
-      ['Discipline', 'Items Count', 'Direct Cost ($)', 'Overhead ($)', 'Profit ($)', 'Tender Total ($)'],
+      ['Discipline', 'Items Count', 'Direct Cost (AED)', 'Overhead (AED)', 'Profit (AED)', 'Tender Total (AED)'],
     ];
 
     report.disciplineBreakdown.forEach((d) => {
@@ -306,7 +306,7 @@ export class RateAnalysisExcelExportEngine {
 
     rows.push(['', '', '', '', '', '']);
     rows.push(['COST BREAKDOWN BY BUILDING / STRUCTURE', '', '', '', '', '']);
-    rows.push(['Building', 'Items Count', 'Gross Floor Area (m²)', 'Tender Amount ($)', 'Cost / m² ($)', '% of Total']);
+    rows.push(['Building', 'Items Count', 'Gross Floor Area (m²)', 'Tender Amount (AED)', 'Cost / m² (AED)', '% of Total']);
 
     report.buildingBreakdown.forEach((b) => {
       rows.push([b.buildingName, b.itemCount, b.grossFloorAreaM2 || 'N/A', b.tenderAmount, b.costPerM2 || 'N/A', `${b.percentageOfTotal}%`]);
@@ -322,7 +322,7 @@ export class RateAnalysisExcelExportEngine {
     const materials = rateDatabase.filter((i) => i.category === 'MATERIAL');
     const rows: any[][] = [
       ['PROJECT MATERIAL RATE DATABASE & SPECIFICATIONS', '', '', '', '', '', '', ''],
-      ['Code', 'Material Name', 'Specification', 'Unit', 'Base Rate ($)', 'Supplier', 'Validity To', 'Source'],
+      ['Code', 'Material Name', 'Specification', 'Unit', 'Base Rate (AED)', 'Supplier', 'Validity To', 'Source'],
     ];
 
     materials.forEach((m) => {
@@ -339,7 +339,7 @@ export class RateAnalysisExcelExportEngine {
     const labour = rateDatabase.filter((i) => i.category === 'LABOUR');
     const rows: any[][] = [
       ['LABOUR TRADES, WAGE RATES & PRODUCTIVITY BASELINE', '', '', '', '', '', ''],
-      ['Code', 'Trade Description', 'Grade / Skill', 'Unit', 'Daily Rate ($)', 'Location', 'Source'],
+      ['Code', 'Trade Description', 'Grade / Skill', 'Unit', 'Daily Rate (AED)', 'Location', 'Source'],
     ];
 
     labour.forEach((l) => {
@@ -356,7 +356,7 @@ export class RateAnalysisExcelExportEngine {
     const equip = rateDatabase.filter((i) => i.category === 'EQUIPMENT');
     const rows: any[][] = [
       ['CONSTRUCTION PLANT & EQUIPMENT RATE SCHEDULE', '', '', '', '', '', ''],
-      ['Code', 'Equipment Name', 'Capacity / Spec', 'Unit', 'Operating Rate ($)', 'Location', 'Source'],
+      ['Code', 'Equipment Name', 'Capacity / Spec', 'Unit', 'Operating Rate (AED)', 'Location', 'Source'],
     ];
 
     equip.forEach((e) => {
@@ -372,7 +372,7 @@ export class RateAnalysisExcelExportEngine {
   private static appendSupplierQuotesSheet(wb: XLSX.WorkBook, quotes: SupplierQuoteItem[]) {
     const rows: any[][] = [
       ['SUPPLIER QUOTATIONS & COMMERCIAL COMPARISON REGISTER', '', '', '', '', '', '', '', ''],
-      ['Quote Ref', 'Supplier Name', 'Material / Scope', 'Unit', 'Quoted Rate ($)', 'Transport ($)', 'Tax ($)', 'Delivered Rate ($)', 'Validity To', 'Status'],
+      ['Quote Ref', 'Supplier Name', 'Material / Scope', 'Unit', 'Quoted Rate (AED)', 'Transport (AED)', 'Tax (AED)', 'Delivered Rate (AED)', 'Validity To', 'Status'],
     ];
 
     quotes.forEach((q) => {
@@ -405,7 +405,7 @@ export class RateAnalysisExcelExportEngine {
     const rows: any[][] = [
       ['ALTERNATIVE PRICING SCENARIOS COMPARISON', '', '', '', '', ''],
       ['Note: All scenarios use identical verified quantities from engineering drawings', '', '', '', '', ''],
-      ['Scenario Code', 'Scenario Name', 'Direct Cost ($)', 'Overhead ($)', 'Profit ($)', 'Tender Total ($)'],
+      ['Scenario Code', 'Scenario Name', 'Direct Cost (AED)', 'Overhead (AED)', 'Profit (AED)', 'Tender Total (AED)'],
     ];
 
     scenarios.forEach((sc) => {
@@ -438,7 +438,7 @@ export class RateAnalysisExcelExportEngine {
   private static appendValueEngineeringSheet(wb: XLSX.WorkBook, proposals: ValueEngineeringProposal[]) {
     const rows: any[][] = [
       ['VALUE ENGINEERING PROPOSALS & SPECIFICATION SAVINGS', '', '', '', '', '', '', '', ''],
-      ['VE Ref', 'BOQ Item', 'Original Specification', 'Original Total ($)', 'Alternative Specification', 'Alternative Total ($)', 'Savings ($)', 'Savings %', 'Approval Status'],
+      ['VE Ref', 'BOQ Item', 'Original Specification', 'Original Total (AED)', 'Alternative Specification', 'Alternative Total (AED)', 'Savings (AED)', 'Savings %', 'Approval Status'],
     ];
 
     proposals.forEach((p) => {

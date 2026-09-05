@@ -165,7 +165,7 @@ export const DrawingAnalysisWorkspace: React.FC<DrawingAnalysisWorkspaceProps> =
     if (!docId) return;
     setIsLoading(true);
     try {
-      const data = await IntelligenceStorageService.getAnalysisDataForDocument(project.id, docId);
+      const data = await IntelligenceStorageService.getAnalysisDataForDocument(project?.id || 'PROJ-TEST-001', docId);
       setDataset(data);
       if (data.runs.length > 0) {
         setLatestRun(data.runs[data.runs.length - 1]);
@@ -750,7 +750,7 @@ export const DrawingAnalysisWorkspace: React.FC<DrawingAnalysisWorkspaceProps> =
               {/* Title Block Box in Bottom-Right */}
               <div className="absolute bottom-4 right-4 w-72 bg-slate-950/90 border border-slate-700 p-2.5 rounded text-[10px] space-y-1 font-mono">
                 <div className="flex justify-between border-b border-slate-800 pb-1 text-indigo-400 font-bold">
-                  <span>PROJECT: {project.project.name}</span>
+                  <span>PROJECT: {project?.project?.name || project?.id || 'Project'}</span>
                   <span>{currentDoc?.drawingNumber}</span>
                 </div>
                 <div className="text-slate-300 font-bold truncate">{currentDoc?.title}</div>

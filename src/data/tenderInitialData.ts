@@ -45,7 +45,7 @@ export const INITIAL_TENDER_INFO: TenderInfo = {
   submissionTime: '14:00 GMT',
   tenderType: 'SELECTIVE_TENDER',
   contractType: 'ITEM_RATE_REMEASURABLE',
-  currency: 'USD',
+  currency: 'AED',
   validityDays: 90,
   validityStartDate: '2026-09-15',
   validityExpiryDate: '2026-12-14',

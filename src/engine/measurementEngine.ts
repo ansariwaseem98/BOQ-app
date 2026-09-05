@@ -899,7 +899,7 @@ export class DependencyGraphEngine {
           type: 'COST',
           name: `Total Cost: ${calc.itemCode || calc.boqItemId}`,
           currentValue: 0,
-          unit: 'USD',
+          unit: 'AED',
           dependencies: [boqNodeId],
           dependents: [],
         });
@@ -1064,7 +1064,7 @@ export class BoqAggregationEngine {
   static aggregateCalculations(
     calculations: CalculationObject[],
     rates: Record<string, number> = {},
-    currency: string = 'USD'
+    currency: string = 'AED'
   ): BoqAggregatedQuantityRecord[] {
     const itemMap = new Map<string, BoqAggregatedQuantityRecord>();
 

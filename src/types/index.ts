@@ -249,16 +249,29 @@ export interface DrawingAnnotation {
 }
 
 export type DocumentTypeOption = 
-  | 'Tender Drawing'
-  | 'Construction Drawing'
-  | 'Shop Drawing'
-  | 'Fabrication Drawing'
-  | 'As-Built Drawing'
-  | 'IFC / BIM'
-  | 'Consultant Drawing'
   | 'Architectural'
   | 'Structural'
+  | 'RCC'
+  | 'Rebar'
+  | 'Structural Steel'
+  | 'Shop Drawing'
+  | 'IFC'
+  | 'IFC / BIM'
   | 'MEP'
+  | 'Electrical'
+  | 'Mechanical'
+  | 'Plumbing'
+  | 'Fire Fighting'
+  | 'Roofing'
+  | 'Cladding'
+  | 'Landscape'
+  | 'Civil'
+  | 'Survey'
+  | 'Tender Drawing'
+  | 'Construction Drawing'
+  | 'Fabrication Drawing'
+  | 'As-Built Drawing'
+  | 'Consultant Drawing'
   | 'Specification'
   | 'Schedule'
   | 'Hand Sketch'
@@ -281,17 +294,27 @@ export type DocumentDisciplineOption =
   | 'Other';
 
 export type DocumentStatus = 
+  | 'SELECTED'
+  | 'UPLOADING'
   | 'UPLOADED'
   | 'PROCESSING'
   | 'READY'
+  | 'PROCESSED'
+  | 'PARSER_REQUIRED'
+  | 'FAILED'
+  | 'REVIEW REQUIRED'
+  | 'REVIEW_REQUIRED'
   | 'PROCESSING_ERROR'
+  | 'SUPERSEDED'
   | 'ARCHIVED';
 
 export type DocumentAnalysisStatus = 
   | 'NOT_ANALYZED'
   | 'ANALYZED'
   | 'REQUIRES_REVIEW'
-  | 'PARTIALLY_ANALYZED';
+  | 'PARTIALLY_ANALYZED'
+  | 'ANALYZING'
+  | 'FAILED';
 
 export interface ProjectDocument {
   id: string; // e.g. "DOC-2026-000001"
@@ -320,6 +343,9 @@ export interface ProjectDocument {
   fileFormat: 'PDF' | 'DWG' | 'DXF' | 'IFC' | 'Image' | 'Sketch' | 'Other';
   fileSize: number;
   uploadDate: string;
+  fileHash?: string; // SHA-256 checksum for duplicate detection
+  storageReference?: string; // Reference to persistent IndexedDB record
+  selectedTime?: string;
   pageCount?: number;
   imageDimensions?: { width: number; height: number };
   cadFormat?: string;
@@ -335,6 +361,29 @@ export interface ProjectDocument {
   previewType?: 'pdf' | 'image' | 'cad' | 'ifc' | 'unsupported';
   isVector?: boolean;
   scaleRatio?: string;
+  uploadedBy?: string;
+  version?: number;
+  sheetNumber?: string;
+  revisionDate?: string;
+  revisionDescription?: string;
+  notesList?: Array<{ id: string; user: string; timestamp: string; note: string }>;
+  annotations?: DrawingAnnotation[];
+  cadLayers?: Array<{ name: string; visible: boolean; entityCount: number; color?: string }>;
+  scaleInfo?: {
+    value: string;
+    confidence?: string;
+    calibrated?: boolean;
+    calibrationData?: {
+      p1: { x: number; y: number };
+      p2: { x: number; y: number };
+      distance: number;
+      unit: string;
+    };
+  };
+  linkedElementIds?: string[];
+  linkedBoqIds?: string[];
+  linkedCalculationIds?: string[];
+  linkedBimIds?: string[];
   calibrationScale?: number;
   detectedElementsCount: number;
   openItemsCount: number;
@@ -3686,6 +3735,8 @@ export interface ExportValidationReport {
   reconciliation: ExportTotalReconciliation;
 }
 
+export type ExportColorTheme = 'CORPORATE_BLUE' | 'PROFESSIONAL_TEAL' | 'DARK_GREY' | 'CORPORATE_GREEN';
+
 export interface ExportSettingsConfig {
   currency: string;
   currencySymbol: string;
@@ -3696,8 +3747,23 @@ export interface ExportSettingsConfig {
     no: number;
     kg: number;
     tonne: number;
+    rate: number;
     amount: number;
   };
+  colorTheme: ExportColorTheme;
+  companyName?: string;
+  clientName?: string;
+  consultantName?: string;
+  contractorName?: string;
+  preparedBy?: string;
+  checkedBy?: string;
+  approvedBy?: string;
+  reportTitle?: string;
+  revision?: string;
+  enableVat?: boolean;
+  vatRatePercent?: number; // e.g. 5%
+  logoBase64?: string;
+  fontFamily?: string;
   pageSize: 'A4' | 'A3';
   orientation: 'PORTRAIT' | 'LANDSCAPE';
   includeCover: boolean;

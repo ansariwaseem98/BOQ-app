@@ -43,7 +43,7 @@ export const SupplierQuotesModal: React.FC<SupplierQuotesModalProps> = ({
     specification: '',
     unit: 'bag',
     quotedRate: 0,
-    currency: 'USD',
+    currency: 'AED',
     transportIncluded: true,
     transportCostPerUnit: 0,
     taxIncluded: false,
@@ -89,7 +89,7 @@ export const SupplierQuotesModal: React.FC<SupplierQuotesModalProps> = ({
       quantityAvailable: newQuote.quantityAvailable || 1000,
       unit: newQuote.unit || 'm³',
       quotedRate: base,
-      currency: newQuote.currency || 'USD',
+      currency: newQuote.currency || 'AED',
       transportIncluded: Boolean(newQuote.transportIncluded),
       transportCostPerUnit: transport,
       taxIncluded: Boolean(newQuote.taxIncluded),
@@ -248,7 +248,7 @@ export const SupplierQuotesModal: React.FC<SupplierQuotesModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Quoted Unit Rate ($ USD) *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Quoted Unit Rate (AED) *</label>
                   <input
                     type="number"
                     step="0.01"

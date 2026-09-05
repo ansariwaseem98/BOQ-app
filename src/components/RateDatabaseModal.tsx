@@ -81,7 +81,7 @@ export const RateDatabaseModal: React.FC<RateDatabaseModalProps> = ({
       specification: '',
       unit: defaultCat === 'LABOUR' ? 'man-day' : defaultCat === 'EQUIPMENT' ? 'hour' : 'm³',
       rate: 0,
-      currency: 'USD',
+      currency: 'AED',
       supplier: '',
       location: 'Central Project Site',
       date: new Date().toISOString().split('T')[0],
@@ -195,7 +195,7 @@ export const RateDatabaseModal: React.FC<RateDatabaseModalProps> = ({
                 <span className="text-xs font-black uppercase text-slate-700 tracking-wider">
                   Project Base & Foreign Exchange Rates
                 </span>
-                <span className="text-xs text-slate-500">Base Currency: USD ($)</span>
+                <span className="text-xs text-slate-500">Base Currency: AED</span>
               </div>
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -325,7 +325,7 @@ export const RateDatabaseModal: React.FC<RateDatabaseModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Base Unit Rate ($ USD) *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Base Unit Rate (AED) *</label>
                   <input
                     type="number"
                     step="0.01"

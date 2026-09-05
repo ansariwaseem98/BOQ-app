@@ -99,8 +99,8 @@ export function createEmptyProjectData(): ProjectData {
       tenderValidity: '',
       contractType: undefined,
       scope: [],
-      currency: '',
-      currencySymbol: '',
+      currency: 'AED',
+      currencySymbol: 'د.إ',
     },
     engineeringSettings: {
       unitSystem: 'Metric',
@@ -116,8 +116,8 @@ export function createEmptyProjectData(): ProjectData {
     contract: {
       contractType: 'Item Rate (BOQ)',
       scopeOfWork: '',
-      currency: '',
-      currencySymbol: '',
+      currency: 'AED',
+      currencySymbol: 'د.إ',
       measurementUnits: 'Metric',
       applicableCodes: '',
       applicableSpecifications: '',
@@ -254,8 +254,8 @@ export const SAMPLE_TEST_PROJECT_DATA: ProjectData = {
     tenderValidity: '90 Days',
     contractType: 'BOQ',
     scope: ['Civil', 'Structural', 'Architectural', 'MEP', 'Steel', 'Complete Turnkey'],
-    currency: 'USD',
-    currencySymbol: '$',
+    currency: 'AED',
+    currencySymbol: 'د.إ',
   },
   engineeringSettings: {
     unitSystem: 'Metric',
@@ -275,8 +275,8 @@ export const SAMPLE_TEST_PROJECT_DATA: ProjectData = {
   contract: {
     contractType: 'BOQ',
     scopeOfWork: 'Complete Civil, Structural RCC, Substructure Earthwork, Bar Bending & Rebar, Structural Steel Roof, Masonry, Finishes, Thermal Cladding & Core MEP Works',
-    currency: 'USD',
-    currencySymbol: '$',
+    currency: 'AED',
+    currencySymbol: 'د.إ',
     measurementUnits: 'Metric',
     applicableCodes: 'BS 8110 / BS 5950, ACI 318-19, Eurocode 2, IS 456 / IS 1200',
     applicableSpecifications: 'Project General Specification Vol II (Civil, Structural & Architectural)',

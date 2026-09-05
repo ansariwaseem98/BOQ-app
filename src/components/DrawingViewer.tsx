@@ -19,6 +19,8 @@ import {
   FileQuestion,
   Eye,
   Scan,
+  Zap,
+  X,
 } from 'lucide-react';
 import {
   SheetIntelligence,
@@ -27,6 +29,8 @@ import {
   BoundingBox,
   DrawingCalibration,
 } from '../types/drawingIntelligence';
+import { AutoCAD2021Modal } from './AutoCAD2021Modal';
+import { AutoCAD2021LaunchConfig } from '../engine/autocad2021IntegrationEngine';
 
 interface DrawingViewerProps {
   activeSheet: SheetIntelligence;
@@ -54,6 +58,8 @@ export const DrawingViewer: React.FC<DrawingViewerProps> = ({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isAutoCADModalOpen, setIsAutoCADModalOpen] = useState<boolean>(false);
+  const [showCadBigBanner, setShowCadBigBanner] = useState<boolean>(true);
 
   // Calibration tool state
   const [isCalibrating, setIsCalibrating] = useState<boolean>(false);
@@ -249,6 +255,16 @@ export const DrawingViewer: React.FC<DrawingViewerProps> = ({
 
           <div className="h-4 w-px bg-slate-800 mx-1" />
 
+          {/* AutoCAD 2021 Integration Launcher */}
+          <button
+            onClick={() => setIsAutoCADModalOpen(true)}
+            className="px-2 py-1 rounded bg-rose-950/80 border border-rose-700/60 hover:bg-rose-900 text-rose-200 text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Open in Autodesk AutoCAD 2021 (v24.0 / AC1032)"
+          >
+            <span className="w-3.5 h-3.5 rounded bg-rose-600 text-white flex items-center justify-center text-[9px] font-black">A</span>
+            <span className="hidden md:inline">AutoCAD 2021</span>
+          </button>
+
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="p-1.5 hover:bg-slate-800 rounded text-slate-300 hover:text-white"
@@ -267,6 +283,35 @@ export const DrawingViewer: React.FC<DrawingViewerProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
+        {/* AutoCAD 2021 CAD Big Suggestion Banner */}
+        {isFullscreen && showCadBigBanner && (
+          <div className="absolute top-4 z-40 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md border border-rose-500/60 rounded-xl px-4 py-2 shadow-2xl flex items-center gap-3 text-xs animate-in slide-in-from-top duration-300">
+            <div className="w-6 h-6 rounded-lg bg-rose-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-md">
+              A
+            </div>
+            <div className="text-slate-200 text-xs">
+              <span className="font-bold text-white">Full-Screen CAD Mode: </span>
+              <span>Recommended to open with </span>
+              <strong className="text-rose-300 font-bold">Autodesk AutoCAD 2021</strong>
+              <span className="text-slate-400 text-[11px] ml-1">(AC1032)</span>
+            </div>
+            <button
+              onClick={() => setIsAutoCADModalOpen(true)}
+              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+            >
+              <Zap className="w-3 h-3 text-rose-200" />
+              <span>Launch</span>
+            </button>
+            <button
+              onClick={() => setShowCadBigBanner(false)}
+              className="p-1 text-slate-400 hover:text-white rounded transition-colors cursor-pointer"
+              title="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Instruction badge when calibrating */}
         {isCalibrating && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-amber-500 text-slate-950 px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5">
@@ -623,6 +668,20 @@ export const DrawingViewer: React.FC<DrawingViewerProps> = ({
           </div>
         </div>
       )}
+
+      {/* AutoCAD 2021 Integration Modal */}
+      <AutoCAD2021Modal
+        isOpen={isAutoCADModalOpen}
+        onClose={() => setIsAutoCADModalOpen(false)}
+        config={{
+          drawingNumber: activeSheet.drawingNumber || 'DWG-001',
+          drawingTitle: activeSheet.title || 'Drawing Sheet',
+          filename: activeSheet.sourceFileName || `${activeSheet.drawingNumber}.dwg`,
+          fileFormat: activeSheet.sourceFileName?.toLowerCase().endsWith('.dxf') ? 'DXF' : 'DWG',
+          elementTag: activeSheet.discipline,
+          scale: activeSheet.scale,
+        }}
+      />
     </div>
   );
 };

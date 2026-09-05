@@ -65,9 +65,11 @@ export const TakeoffWorkspace: React.FC<TakeoffWorkspaceProps> = ({
   onOpenDrawingViewer,
   onNavigateToBoq
 }) => {
+  const projectId = project?.id || 'PROJ-TEST-001';
+
   // 1. Engineering Rules & Takeoff Data
   const [rules, setRules] = useState<ProjectEngineeringRules>(() =>
-    TakeoffStorageService.getEngineeringRules(project.id)
+    TakeoffStorageService.getEngineeringRules(projectId)
   );
   const [takeoffItems, setTakeoffItems] = useState<TakeoffItemRecord[]>(() =>
     TakeoffStorageService.bootstrapInitialTakeoff(project, documents)

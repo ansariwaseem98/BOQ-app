@@ -36,7 +36,19 @@ import {
   ChevronRight,
   Info,
   Building2,
-  FolderKanban
+  FolderKanban,
+  Loader2,
+  LayoutGrid,
+  List,
+  Ruler,
+  GitCompare,
+  Link,
+  MessageSquare,
+  FileCode,
+  CheckCircle,
+  HelpCircle,
+  FileCheck,
+  Calculator
 } from 'lucide-react';
 import { 
   ProjectRecord, 
@@ -48,11 +60,17 @@ import {
   FileFormat,
   DrawingRecord
 } from '../types';
-import { DocumentStorageService } from '../services/documentStorage';
+import { extractFileTechnicalMetadata, generateDocumentId, DocumentStorageService } from '../services/documentStorage';
 import { UploadDocumentModal } from './UploadDocumentModal';
+import { DrawingUploadCenterModal } from './DrawingUploadCenterModal';
+import { DrawingDetailsModal } from './DrawingDetailsModal';
 import { RevisionWarningModal, RevisionConflictData } from './RevisionWarningModal';
 import { FullScreenViewerModal } from './FullScreenViewerModal';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { Phase18DrawingAnalysisModal } from './Phase18DrawingAnalysisModal';
+import { DrawingScaleCalibrationModal } from './DrawingScaleCalibrationModal';
+import { DrawingComparisonModal } from './DrawingComparisonModal';
+import { DrawingToBoqAutoPipelineModal } from './DrawingToBoqAutoPipelineModal';
 
 interface DrawingManagerProps {
   activeProject: ProjectRecord | null;
@@ -67,10 +85,12 @@ interface DrawingManagerProps {
   onAddDrawing?: (drawing: DrawingRecord) => void;
   onDeleteDrawing?: (id: string) => void;
   onOpenAiScan?: () => void;
+  onOpenPhase17DrawingIntake?: () => void;
 }
 
-type SortField = 'drawingNumber' | 'title' | 'revision' | 'drawingDate' | 'uploadDate' | 'discipline' | 'status';
+type SortField = 'drawingNumber' | 'title' | 'revision' | 'drawingDate' | 'uploadDate' | 'discipline' | 'status' | 'fileSize';
 type SortOrder = 'asc' | 'desc';
+type ViewMode = 'table' | 'cards';
 
 export const DrawingManager: React.FC<DrawingManagerProps> = ({
   activeProject,
@@ -80,12 +100,15 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
   onSelectDrawing,
 }) => {
   const projectId = activeProject?.id || '';
-  const projectName = activeProject?.project?.name || 'Current Project';
+  const projectName = activeProject?.project?.name || activeProject?.name || 'Current Project';
 
   // State: Documents belonging strictly to this project
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // View Mode: Table vs Cards
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
 
   // Search & Filtering
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -96,34 +119,58 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
   const [statusView, setStatusView] = useState<'Active' | 'Archived' | 'All'>('Active');
   const [selectedAnalysisStatus, setSelectedAnalysisStatus] = useState<string>('All');
 
+  // Direct Upload Progress & Drag-and-Drop
+  const [isDragOver, setIsDragOver] = useState<boolean>(false);
+  const [isDirectUploading, setIsDirectUploading] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadStatusText, setUploadStatusText] = useState<string>('');
+  const [directUploadError, setDirectUploadError] = useState<string | null>(null);
+
+  // Hidden File Pickers
+  const directFileInputRef = useRef<HTMLInputElement>(null);
+  const cadFileInputRef = useRef<HTMLInputElement>(null);
+  const ifcFileInputRef = useRef<HTMLInputElement>(null);
+  const sketchFileInputRef = useRef<HTMLInputElement>(null);
+
   // Sorting
   const [sortField, setSortField] = useState<SortField>('drawingNumber');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  // Modals
+  // Modals & Inspectors
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
   const [isHandSketchModalOpen, setIsHandSketchModalOpen] = useState<boolean>(false);
+  const [isRealUploadCenterOpen, setIsRealUploadCenterOpen] = useState<boolean>(false);
+  const [isRealHandSketchCenterOpen, setIsRealHandSketchCenterOpen] = useState<boolean>(false);
+  const [inspectingDoc, setInspectingDoc] = useState<ProjectDocument | null>(null);
+  const [calibratingDoc, setCalibratingDoc] = useState<ProjectDocument | null>(null);
+  const [comparingDoc, setComparingDoc] = useState<ProjectDocument | null>(null);
+  const [phase18AnalysisDoc, setPhase18AnalysisDoc] = useState<ProjectDocument | null>(null);
+  const [processingDocIds, setProcessingDocIds] = useState<Set<string>>(new Set());
   const [isFullScreenOpen, setIsFullScreenOpen] = useState<boolean>(false);
   const [conflictData, setConflictData] = useState<RevisionConflictData | null>(null);
   const [deleteTargetDoc, setDeleteTargetDoc] = useState<ProjectDocument | null>(null);
   const [isPermanentDelete, setIsPermanentDelete] = useState<boolean>(false);
+  const [isBoqPipelineModalOpen, setIsBoqPipelineModalOpen] = useState<boolean>(false);
+  const [boqPipelineTargetDocs, setBoqPipelineTargetDocs] = useState<ProjectDocument[] | undefined>(undefined);
 
-  // Right Panel: Tab (Preview vs Metadata Edit)
-  const [rightPanelTab, setRightPanelTab] = useState<'preview' | 'metadata' | 'revisions'>('preview');
+  // Right Panel: Tab (Preview, Metadata, Revisions, Traceability, Notes)
+  const [rightPanelTab, setRightPanelTab] = useState<'preview' | 'metadata' | 'revisions' | 'traceability' | 'notes'>('preview');
 
   // Right Panel: In-line editable metadata form
   const [editingMetadata, setEditingMetadata] = useState<Partial<ProjectDocument>>({});
   const [isSavingMeta, setIsSavingMeta] = useState<boolean>(false);
   const [metaSaveSuccessToast, setMetaSaveSuccessToast] = useState<boolean>(false);
 
+  // Notes in Right Panel
+  const [newNoteText, setNewNoteText] = useState<string>('');
+
   // Preview interactive controls state
   const [previewZoom, setPreviewZoom] = useState<number>(100);
   const [previewRotation, setPreviewRotation] = useState<number>(0);
   const [previewCadDark, setPreviewCadDark] = useState<boolean>(true);
   const [previewGrid, setPreviewGrid] = useState<boolean>(true);
-  const [previewPage, setPreviewPage] = useState<number>(1);
 
-  // Disciplines list for left sidebar
+  // Disciplines list for left sidebar and filter pills
   const disciplinesList: (DocumentDisciplineOption | 'All')[] = [
     'All',
     'Architectural',
@@ -142,16 +189,28 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
   ];
 
   const docTypesList: DocumentTypeOption[] = [
-    'Tender Drawing',
-    'Construction Drawing',
-    'Shop Drawing',
-    'Fabrication Drawing',
-    'As-Built Drawing',
-    'IFC / BIM',
-    'Consultant Drawing',
     'Architectural',
     'Structural',
+    'RCC',
+    'Rebar',
+    'Structural Steel',
+    'Shop Drawing',
+    'IFC / BIM',
     'MEP',
+    'Electrical',
+    'Mechanical',
+    'Plumbing',
+    'Fire Fighting',
+    'Roofing',
+    'Cladding',
+    'Landscape',
+    'Civil',
+    'Survey',
+    'Tender Drawing',
+    'Construction Drawing',
+    'Fabrication Drawing',
+    'As-Built Drawing',
+    'Consultant Drawing',
     'Specification',
     'Schedule',
     'Hand Sketch',
@@ -159,7 +218,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
     'Other',
   ];
 
-  // Load documents for current active project
+  // Load documents strictly for current active project
   useEffect(() => {
     let isMounted = true;
 
@@ -173,16 +232,11 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
 
       setIsLoading(true);
       try {
-        let list = await DocumentStorageService.getDocumentsByProject(projectId, true);
-
-        // If this is the sample test fixture project and it has 0 documents, seed initial test drawings
-        if (list.length === 0 && activeProject?.isTestProject) {
-          list = await DocumentStorageService.seedInitialTestDocuments(projectId);
-        }
+        const list = await DocumentStorageService.getDocumentsByProject(projectId, true);
 
         if (isMounted) {
           setDocuments(list);
-          // Set first active document if available
+          // Select first active document if available
           const firstActive = list.find((d) => !d.isArchived) || list[0];
           if (firstActive) {
             setSelectedDocId(firstActive.id);
@@ -207,7 +261,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [projectId, activeProject?.isTestProject]);
+  }, [projectId]);
 
   // Active Selected Document
   const selectedDoc = useMemo(() => {
@@ -220,9 +274,161 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
       setEditingMetadata({ ...selectedDoc });
       setPreviewZoom(100);
       setPreviewRotation(0);
-      setPreviewPage(1);
     }
   }, [selectedDocId, selectedDoc?.id]);
+
+  // Handle direct file upload via real system file picker or drag & drop
+  const handleDirectFiles = async (files: FileList | File[] | null, forceDocType?: DocumentTypeOption) => {
+    if (!files || !projectId) return;
+    const fileArr = Array.from(files);
+    if (fileArr.length === 0) return;
+
+    setIsDirectUploading(true);
+    setUploadProgress(10);
+    setUploadStatusText(`Preparing ${fileArr.length} drawing file(s)...`);
+    setDirectUploadError(null);
+
+    try {
+      const existingDocs = await DocumentStorageService.getDocumentsByProject(projectId, true);
+      const createdDocs: ProjectDocument[] = [];
+
+      for (let i = 0; i < fileArr.length; i++) {
+        const file = fileArr[i];
+        const progressPct = Math.round(15 + ((i + 1) / fileArr.length) * 80);
+        setUploadProgress(progressPct);
+        setUploadStatusText(`Uploading ${file.name} (${i + 1}/${fileArr.length})...`);
+
+        const technicalMeta = await extractFileTechnicalMetadata(file);
+        const ext = file.name.split('.').pop()?.toLowerCase() || '';
+        const baseName = file.name.replace(/\.[^/.]+$/, '');
+        const dwgMatch = baseName.match(/^([A-Z]{1,4}-\d{1,4})/i);
+        const tentativeDwgNo = dwgMatch ? dwgMatch[1].toUpperCase() : '';
+
+        const newDocId = generateDocumentId([...existingDocs, ...createdDocs]);
+        const seriesId = tentativeDwgNo || `SERIES-${newDocId}`;
+
+        // Determine discipline & type from filename or format
+        let disc: DocumentDisciplineOption = 'Structural';
+        let docType: DocumentTypeOption = forceDocType || 'Construction Drawing';
+
+        if (forceDocType === 'Hand Sketch' || ['png', 'jpg', 'jpeg'].includes(ext)) {
+          if (forceDocType === 'Hand Sketch') docType = 'Hand Sketch';
+        }
+        if (ext === 'ifc') {
+          docType = 'IFC / BIM';
+          disc = 'Structural';
+        } else if (file.name.toLowerCase().startsWith('a-') || file.name.toLowerCase().includes('arch')) {
+          disc = 'Architectural';
+          docType = 'Architectural';
+        } else if (file.name.toLowerCase().startsWith('s-') || file.name.toLowerCase().includes('struct')) {
+          disc = 'Structural';
+          docType = 'Structural';
+        } else if (file.name.toLowerCase().startsWith('m-') || file.name.toLowerCase().includes('mep')) {
+          disc = 'MEP';
+          docType = 'MEP';
+        } else if (file.name.toLowerCase().startsWith('e-') || file.name.toLowerCase().includes('elec')) {
+          disc = 'Electrical';
+          docType = 'Electrical';
+        } else if (file.name.toLowerCase().startsWith('p-') || file.name.toLowerCase().includes('plumb')) {
+          disc = 'Plumbing';
+          docType = 'Plumbing';
+        }
+
+        const newDoc: ProjectDocument = {
+          id: newDocId,
+          projectId,
+          drawingSeriesId: seriesId,
+          drawingNumber: tentativeDwgNo || '',
+          title: baseName,
+          documentType: docType,
+          discipline: disc,
+          revision: 'Rev 01',
+          isCurrentRevision: true,
+          drawingDate: new Date().toISOString().split('T')[0],
+          level: 'Typical Floor',
+          status: technicalMeta.fileFormat === 'DWG' || technicalMeta.fileFormat === 'IFC' ? 'PARSER_REQUIRED' : 'UPLOADED',
+          analysisStatus: 'NOT_ANALYZED',
+          sourceFileName: file.name,
+          fileExtension: technicalMeta.fileExtension,
+          fileFormat: technicalMeta.fileFormat,
+          fileSize: technicalMeta.fileSize,
+          uploadDate: technicalMeta.uploadDate,
+          pageCount: technicalMeta.pageCount || 1,
+          imageDimensions: technicalMeta.imageDimensions,
+          cadFormat: technicalMeta.cadFormat,
+          ifcMetadata: technicalMeta.ifcMetadata,
+          previewDataUrl: technicalMeta.previewDataUrl,
+          previewType: technicalMeta.previewType,
+          isVector: technicalMeta.isVector,
+          detectedElementsCount: 0,
+          openItemsCount: 0,
+          isArchived: false,
+          version: 1,
+          uploadedBy: 'Estimator',
+          scaleRatio: '1:100',
+        };
+
+        const saved = await DocumentStorageService.saveDocument(newDoc, file);
+        createdDocs.push(saved);
+      }
+
+      setUploadProgress(100);
+      setUploadStatusText(`Upload complete! Successfully added ${createdDocs.length} drawing(s).`);
+
+      setTimeout(() => {
+        setIsDirectUploading(false);
+        setUploadProgress(0);
+        setUploadStatusText('');
+      }, 1000);
+
+      // Refresh documents
+      const freshList = await DocumentStorageService.getDocumentsByProject(projectId, true);
+      setDocuments(freshList);
+      if (createdDocs.length > 0) {
+        setSelectedDocId(createdDocs[0].id);
+        if (onSelectDrawing) onSelectDrawing(createdDocs[0].id);
+      }
+    } catch (err: any) {
+      console.error('Direct drawing upload error:', err);
+      setDirectUploadError(err?.message || 'Failed to upload drawing files.');
+      setIsDirectUploading(false);
+      setUploadProgress(0);
+    } finally {
+      // Clear native picker value
+      if (directFileInputRef.current) directFileInputRef.current.value = '';
+      if (cadFileInputRef.current) cadFileInputRef.current.value = '';
+      if (ifcFileInputRef.current) ifcFileInputRef.current.value = '';
+      if (sketchFileInputRef.current) sketchFileInputRef.current.value = '';
+    }
+  };
+
+  // Drag and drop event handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleDirectFiles(e.dataTransfer.files);
+    }
+  };
 
   // Filter & Search Pipeline
   const filteredDocuments = useMemo(() => {
@@ -278,8 +484,8 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
         return true;
       })
       .sort((a, b) => {
-        let valA: string = '';
-        let valB: string = '';
+        let valA: any = '';
+        let valB: any = '';
 
         if (sortField === 'drawingNumber') {
           valA = a.drawingNumber || a.id;
@@ -302,10 +508,14 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
         } else if (sortField === 'status') {
           valA = a.status || '';
           valB = b.status || '';
+        } else if (sortField === 'fileSize') {
+          valA = a.fileSize || 0;
+          valB = b.fileSize || 0;
         }
 
-        const cmp = valA.localeCompare(valB, undefined, { numeric: true });
-        return sortOrder === 'asc' ? cmp : -cmp;
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
       });
   }, [
     documents,
@@ -320,11 +530,28 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
     sortOrder,
   ]);
 
-  // Unique lists for dropdown filters
+  // Discipline & Category Counters for Badge Pills
+  const counts = useMemo(() => {
+    const activeDocs = documents.filter((d) => !d.isArchived);
+    return {
+      total: activeDocs.length,
+      architectural: activeDocs.filter((d) => d.discipline === 'Architectural' || d.documentType === 'Architectural').length,
+      structural: activeDocs.filter((d) => d.discipline === 'Structural' || d.documentType === 'Structural').length,
+      rcc: activeDocs.filter((d) => d.documentType === 'RCC' || d.title.toLowerCase().includes('rcc') || d.title.toLowerCase().includes('concrete')).length,
+      rebar: activeDocs.filter((d) => d.documentType === 'Rebar' || d.title.toLowerCase().includes('rebar') || d.title.toLowerCase().includes('bbs')).length,
+      steel: activeDocs.filter((d) => d.discipline === 'Steel' || d.documentType === 'Structural Steel' || d.title.toLowerCase().includes('steel')).length,
+      mep: activeDocs.filter((d) => ['MEP', 'HVAC', 'Electrical', 'Plumbing', 'Fire Fighting'].includes(d.discipline) || d.documentType === 'MEP').length,
+      shop: activeDocs.filter((d) => d.documentType === 'Shop Drawing').length,
+      ifc: activeDocs.filter((d) => d.fileFormat === 'IFC' || d.documentType === 'IFC' || d.documentType === 'IFC / BIM').length,
+      sketch: activeDocs.filter((d) => d.documentType === 'Hand Sketch' || d.fileFormat === 'Sketch').length,
+      other: activeDocs.filter((d) => d.documentType === 'Other' || d.discipline === 'Other').length,
+    };
+  }, [documents]);
+
   const uniqueLevels = useMemo(() => {
     const set = new Set<string>();
     documents.forEach((d) => {
-      if (d.level) set.add(d.level);
+      if (d.level && d.level.trim()) set.add(d.level.trim());
     });
     return Array.from(set);
   }, [documents]);
@@ -337,177 +564,64 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
     return Array.from(set);
   }, [documents]);
 
-  // Active filter count
-  const activeFiltersCount =
-    (selectedDiscipline !== 'All' ? 1 : 0) +
-    (selectedDocType !== 'All' ? 1 : 0) +
-    (selectedLevel !== 'All' ? 1 : 0) +
-    (selectedFormat !== 'All' ? 1 : 0) +
-    (selectedAnalysisStatus !== 'All' ? 1 : 0) +
-    (statusView !== 'Active' ? 1 : 0) +
-    (searchQuery.trim() ? 1 : 0);
-
-  const handleClearFilters = () => {
-    setSelectedDiscipline('All');
-    setSelectedDocType('All');
-    setSelectedLevel('All');
-    setSelectedFormat('All');
-    setSelectedAnalysisStatus('All');
-    setStatusView('Active');
-    setSearchQuery('');
-  };
-
-  // Sort handler
+  // Sort Handler
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortField(field);
       setSortOrder('asc');
     }
   };
 
-  // Document selection
   const handleSelectDoc = (doc: ProjectDocument) => {
     setSelectedDocId(doc.id);
     if (onSelectDrawing) onSelectDrawing(doc.id);
   };
 
-  // Upload completed callback
-  const handleUploadSuccess = (createdDocs: ProjectDocument[]) => {
-    setDocuments((prev) => [...createdDocs, ...prev]);
-    if (createdDocs.length > 0) {
-      setSelectedDocId(createdDocs[0].id);
-      if (onSelectDrawing) onSelectDrawing(createdDocs[0].id);
-    }
+  const handleOpenDrawingDetails = (doc: ProjectDocument, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setInspectingDoc(doc);
   };
 
-  // Revision conflict detected handler
-  const handleRevisionConflictDetected = (conflict: RevisionConflictData) => {
-    setConflictData(conflict);
+  const handleOpenFullScreen = (doc: ProjectDocument, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedDocId(doc.id);
+    setIsFullScreenOpen(true);
   };
 
-  // Revision Conflict Action: Make Current
-  const handleMakeRevisionCurrent = async () => {
-    if (!conflictData) return;
-
+  // Toggle Archive Status
+  const handleToggleArchive = async (doc: ProjectDocument) => {
     try {
-      const existingDocs = await DocumentStorageService.getDocumentsByProject(projectId, true);
-      const newDocId = DocumentStorageService.generateDocumentId(existingDocs);
-
-      const newDoc: ProjectDocument = {
-        id: newDocId,
-        projectId,
-        drawingSeriesId: conflictData.seriesId,
-        drawingNumber: conflictData.drawingNumber,
-        title: conflictData.file.name.replace(/\.[^/.]+$/, ''),
-        documentType: (conflictData.docForm.documentType as DocumentTypeOption) || 'Tender Drawing',
-        discipline: (conflictData.docForm.discipline as DocumentDisciplineOption) || 'Structural',
-        revision: conflictData.newRevision,
-        isCurrentRevision: true, // Mark as current
-        drawingDate: new Date().toISOString().split('T')[0],
-        level: conflictData.docForm.level || 'Typical Floor',
-        status: 'READY',
-        analysisStatus: 'NOT_ANALYZED',
-        preparedBy: conflictData.docForm.preparedBy,
-        source: conflictData.docForm.source,
-        notes: conflictData.docForm.notes,
-        sourceFileName: conflictData.file.name,
-        fileExtension: conflictData.technicalMeta.fileExtension,
-        fileFormat: conflictData.technicalMeta.fileFormat,
-        fileSize: conflictData.technicalMeta.fileSize,
-        uploadDate: conflictData.technicalMeta.uploadDate,
-        pageCount: conflictData.technicalMeta.pageCount,
-        imageDimensions: conflictData.technicalMeta.imageDimensions,
-        cadFormat: conflictData.technicalMeta.cadFormat,
-        ifcMetadata: conflictData.technicalMeta.ifcMetadata,
-        previewDataUrl: conflictData.technicalMeta.previewDataUrl,
-        previewType: conflictData.technicalMeta.previewType,
-        isVector: conflictData.technicalMeta.isVector,
-        detectedElementsCount: 0,
-        openItemsCount: 0,
-        isArchived: false,
-      };
-
-      const saved = await DocumentStorageService.saveDocument(newDoc, conflictData.file);
-      setDocuments((prev) => [
-        saved,
-        ...prev.map((d) =>
-          d.drawingSeriesId === conflictData.seriesId ? { ...d, isCurrentRevision: false } : d
-        ),
-      ]);
-      setSelectedDocId(saved.id);
-      setConflictData(null);
-    } catch (err) {
-      console.error('Failed to make revision current:', err);
-    }
-  };
-
-  // Revision Conflict Action: Keep As Draft
-  const handleKeepRevisionAsDraft = async () => {
-    if (!conflictData) return;
-
-    try {
-      const existingDocs = await DocumentStorageService.getDocumentsByProject(projectId, true);
-      const newDocId = DocumentStorageService.generateDocumentId(existingDocs);
-
-      const newDoc: ProjectDocument = {
-        id: newDocId,
-        projectId,
-        drawingSeriesId: conflictData.seriesId,
-        drawingNumber: conflictData.drawingNumber,
-        title: conflictData.file.name.replace(/\.[^/.]+$/, ''),
-        documentType: (conflictData.docForm.documentType as DocumentTypeOption) || 'Tender Drawing',
-        discipline: (conflictData.docForm.discipline as DocumentDisciplineOption) || 'Structural',
-        revision: conflictData.newRevision,
-        isCurrentRevision: false, // Keep as draft / non-current
-        drawingDate: new Date().toISOString().split('T')[0],
-        level: conflictData.docForm.level || 'Typical Floor',
-        status: 'READY',
-        analysisStatus: 'NOT_ANALYZED',
-        preparedBy: conflictData.docForm.preparedBy,
-        source: conflictData.docForm.source,
-        notes: conflictData.docForm.notes,
-        sourceFileName: conflictData.file.name,
-        fileExtension: conflictData.technicalMeta.fileExtension,
-        fileFormat: conflictData.technicalMeta.fileFormat,
-        fileSize: conflictData.technicalMeta.fileSize,
-        uploadDate: conflictData.technicalMeta.uploadDate,
-        pageCount: conflictData.technicalMeta.pageCount,
-        imageDimensions: conflictData.technicalMeta.imageDimensions,
-        cadFormat: conflictData.technicalMeta.cadFormat,
-        ifcMetadata: conflictData.technicalMeta.ifcMetadata,
-        previewDataUrl: conflictData.technicalMeta.previewDataUrl,
-        previewType: conflictData.technicalMeta.previewType,
-        isVector: conflictData.technicalMeta.isVector,
-        detectedElementsCount: 0,
-        openItemsCount: 0,
-        isArchived: false,
-      };
-
-      const saved = await DocumentStorageService.saveDocument(newDoc, conflictData.file);
-      setDocuments((prev) => [saved, ...prev]);
-      setSelectedDocId(saved.id);
-      setConflictData(null);
-    } catch (err) {
-      console.error('Failed to save draft revision:', err);
-    }
-  };
-
-  // Set Current Revision for series from UI
-  const handleSetAsCurrentRevision = async (doc: ProjectDocument) => {
-    try {
-      await DocumentStorageService.setCurrentRevision(projectId, doc.drawingSeriesId || doc.drawingNumber, doc.id);
+      const newArchivedState = !doc.isArchived;
+      await DocumentStorageService.archiveDocument(doc.id, newArchivedState);
       setDocuments((prev) =>
-        prev.map((d) => {
-          if (d.drawingSeriesId === doc.drawingSeriesId || d.drawingNumber === doc.drawingNumber) {
-            return { ...d, isCurrentRevision: d.id === doc.id };
-          }
-          return d;
-        })
+        prev.map((d) => (d.id === doc.id ? { ...d, isArchived: newArchivedState, status: newArchivedState ? 'ARCHIVED' : 'READY' } : d))
       );
     } catch (err) {
-      console.error('Failed to set current revision:', err);
+      console.error('Failed to update archive status:', err);
+    }
+  };
+
+  // Permanent Delete modal triggers
+  const handleRequestPermanentDelete = (doc: ProjectDocument, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDeleteTargetDoc(doc);
+    setIsPermanentDelete(true);
+  };
+
+  const handleConfirmDeleteModal = async () => {
+    if (!deleteTargetDoc) return;
+    try {
+      await DocumentStorageService.deleteDocumentPermanently(deleteTargetDoc.id);
+      setDocuments((prev) => prev.filter((d) => d.id !== deleteTargetDoc.id));
+      if (selectedDocId === deleteTargetDoc.id) {
+        const remaining = documents.filter((d) => d.id !== deleteTargetDoc.id);
+        setSelectedDocId(remaining[0]?.id || null);
+      }
+      setDeleteTargetDoc(null);
+    } catch (err) {
+      console.error('Delete failed:', err);
     }
   };
 
@@ -515,25 +629,8 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
   const handleSaveMetadataChanges = async () => {
     if (!selectedDoc) return;
     setIsSavingMeta(true);
-
     try {
-      const updated = await DocumentStorageService.updateDocumentMetadata(selectedDoc.id, {
-        drawingNumber: editingMetadata.drawingNumber || '',
-        title: editingMetadata.title || '',
-        description: editingMetadata.description || '',
-        documentType: editingMetadata.documentType || 'Tender Drawing',
-        discipline: editingMetadata.discipline || 'Structural',
-        revision: editingMetadata.revision || 'Rev 01',
-        drawingDate: editingMetadata.drawingDate || '',
-        level: editingMetadata.level || '',
-        status: editingMetadata.status || 'READY',
-        preparedBy: editingMetadata.preparedBy || '',
-        checkedBy: editingMetadata.checkedBy || '',
-        approvedBy: editingMetadata.approvedBy || '',
-        source: editingMetadata.source || '',
-        notes: editingMetadata.notes || '',
-      });
-
+      const updated = await DocumentStorageService.updateDocumentMetadata(selectedDoc.id, editingMetadata);
       setDocuments((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
       setMetaSaveSuccessToast(true);
       setTimeout(() => setMetaSaveSuccessToast(false), 3000);
@@ -544,55 +641,197 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
     }
   };
 
-  // Archive or Restore
-  const handleToggleArchive = (doc: ProjectDocument) => {
-    if (doc.isArchived) {
-      // Direct Restore
-      DocumentStorageService.archiveDocument(doc.id, false).then(() => {
-        setDocuments((prev) =>
-          prev.map((d) => (d.id === doc.id ? { ...d, isArchived: false, status: 'READY' } : d))
-        );
+  // Add a Note to Selected Document
+  const handleAddNote = async () => {
+    if (!selectedDoc || !newNoteText.trim()) return;
+    const newNoteObj = {
+      id: `NOTE-${Date.now()}`,
+      user: 'Lead Estimator',
+      timestamp: new Date().toISOString(),
+      note: newNoteText.trim(),
+    };
+    const updatedNotesList = [...(selectedDoc.notesList || []), newNoteObj];
+    try {
+      const updated = await DocumentStorageService.updateDocumentMetadata(selectedDoc.id, {
+        notesList: updatedNotesList,
       });
-    } else {
-      // Trigger confirmation modal
-      setDeleteTargetDoc(doc);
-      setIsPermanentDelete(false);
+      setDocuments((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+      setNewNoteText('');
+    } catch (err) {
+      console.error('Failed to add note:', err);
     }
   };
 
-  // Permanent Delete Trigger
-  const handleRequestPermanentDelete = (doc: ProjectDocument) => {
-    setDeleteTargetDoc(doc);
-    setIsPermanentDelete(true);
+  // Delete a Note from Selected Document
+  const handleDeleteNote = async (noteId: string) => {
+    if (!selectedDoc) return;
+    const updatedNotesList = (selectedDoc.notesList || []).filter((n) => n.id !== noteId);
+    try {
+      const updated = await DocumentStorageService.updateDocumentMetadata(selectedDoc.id, {
+        notesList: updatedNotesList,
+      });
+      setDocuments((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+    } catch (err) {
+      console.error('Failed to delete note:', err);
+    }
   };
 
-  // Confirm Archive / Delete from modal
-  const handleConfirmDeleteModal = async () => {
-    if (!deleteTargetDoc) return;
+  // Switch Current Active Revision
+  const handleSetAsCurrentRevision = async (targetDoc: ProjectDocument) => {
+    if (!targetDoc.drawingSeriesId) return;
+    try {
+      await DocumentStorageService.setCurrentRevision(projectId, targetDoc.drawingSeriesId, targetDoc.id);
+      const updatedList = await DocumentStorageService.getDocumentsByProject(projectId, true);
+      setDocuments(updatedList);
+    } catch (err) {
+      console.error('Failed to switch current revision:', err);
+    }
+  };
 
-    if (isPermanentDelete) {
-      await DocumentStorageService.deleteDocumentPermanently(deleteTargetDoc.id);
-      setDocuments((prev) => prev.filter((d) => d.id !== deleteTargetDoc.id));
-      if (selectedDocId === deleteTargetDoc.id) {
-        const remaining = documents.filter((d) => d.id !== deleteTargetDoc.id);
-        setSelectedDocId(remaining[0]?.id || null);
+  // Run AI / Parser Extraction on Drawing
+  const handleRowProcessDrawing = async (doc: ProjectDocument, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setProcessingDocIds((prev) => new Set(prev).add(doc.id));
+
+    try {
+      const res = await DocumentStorageService.processDrawingWithAI(doc.id);
+      const updatedDoc = await DocumentStorageService.getDocumentById(doc.id);
+      if (updatedDoc) {
+        setDocuments((prev) => prev.map((d) => (d.id === doc.id ? updatedDoc : d)));
       }
-    } else {
-      await DocumentStorageService.archiveDocument(deleteTargetDoc.id, true);
-      setDocuments((prev) =>
-        prev.map((d) => (d.id === deleteTargetDoc.id ? { ...d, isArchived: true, status: 'ARCHIVED' } : d))
-      );
+    } catch (err) {
+      console.error('Processing error:', err);
+    } finally {
+      setProcessingDocIds((prev) => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
     }
-
-    setDeleteTargetDoc(null);
   };
 
-  // Export to Excel
+  // Export Excel register
   const handleExportExcel = () => {
     DocumentStorageService.exportDrawingRegisterExcel(documents, projectName, projectId);
   };
 
-  // Revisions stack for current selected document
+  const handleUploadSuccess = (createdDocs: ProjectDocument[]) => {
+    setDocuments((prev) => {
+      const map = new Map<string, ProjectDocument>();
+      prev.forEach((d) => map.set(d.id, d));
+      createdDocs.forEach((d) => map.set(d.id, d));
+      return Array.from(map.values());
+    });
+    if (createdDocs.length > 0) {
+      setSelectedDocId(createdDocs[0].id);
+      if (onSelectDrawing) onSelectDrawing(createdDocs[0].id);
+    }
+  };
+
+  const handleRevisionConflictDetected = (data: RevisionConflictData) => {
+    setConflictData(data);
+  };
+
+  const handleMakeRevisionCurrent = async () => {
+    if (!conflictData) return;
+    const { file, technicalMeta, drawingNumber, newRevision, seriesId, docForm } = conflictData;
+    const newDocId = generateDocumentId(documents);
+
+    const newDoc: ProjectDocument = {
+      id: newDocId,
+      projectId,
+      drawingSeriesId: seriesId || `SERIES-${newDocId}`,
+      drawingNumber: drawingNumber || '',
+      title: docForm.title || file.name.replace(/\.[^/.]+$/, ''),
+      documentType: docForm.documentType || 'Construction Drawing',
+      discipline: docForm.discipline || 'Structural',
+      revision: newRevision || 'Rev 02',
+      isCurrentRevision: true,
+      drawingDate: docForm.drawingDate || new Date().toISOString().split('T')[0],
+      level: docForm.level || 'Typical Floor',
+      status: technicalMeta.fileFormat === 'DWG' || technicalMeta.fileFormat === 'IFC' ? 'PARSER_REQUIRED' : 'UPLOADED',
+      analysisStatus: 'NOT_ANALYZED',
+      sourceFileName: file.name,
+      fileExtension: technicalMeta.fileExtension,
+      fileFormat: technicalMeta.fileFormat,
+      fileSize: technicalMeta.fileSize,
+      uploadDate: technicalMeta.uploadDate,
+      pageCount: technicalMeta.pageCount || 1,
+      previewDataUrl: technicalMeta.previewDataUrl,
+      previewType: technicalMeta.previewType,
+      isVector: technicalMeta.isVector,
+      detectedElementsCount: 0,
+      openItemsCount: 0,
+      isArchived: false,
+      version: 1,
+      uploadedBy: 'Estimator',
+    };
+
+    const saved = await DocumentStorageService.saveDocument(newDoc, file);
+    await handleUploadSuccess([saved]);
+    await handleSetAsCurrentRevision(saved);
+    setConflictData(null);
+  };
+
+  const handleKeepRevisionAsDraft = async () => {
+    if (!conflictData) return;
+    const { file, technicalMeta, drawingNumber, newRevision, seriesId, docForm } = conflictData;
+    const newDocId = generateDocumentId(documents);
+
+    const draftDoc: ProjectDocument = {
+      id: newDocId,
+      projectId,
+      drawingSeriesId: seriesId || `SERIES-${newDocId}`,
+      drawingNumber: drawingNumber || '',
+      title: docForm.title || file.name.replace(/\.[^/.]+$/, ''),
+      documentType: docForm.documentType || 'Construction Drawing',
+      discipline: docForm.discipline || 'Structural',
+      revision: newRevision || 'Rev 02',
+      isCurrentRevision: false,
+      drawingDate: docForm.drawingDate || new Date().toISOString().split('T')[0],
+      level: docForm.level || 'Typical Floor',
+      status: 'READY',
+      analysisStatus: 'NOT_ANALYZED',
+      sourceFileName: file.name,
+      fileExtension: technicalMeta.fileExtension,
+      fileFormat: technicalMeta.fileFormat,
+      fileSize: technicalMeta.fileSize,
+      uploadDate: technicalMeta.uploadDate,
+      pageCount: technicalMeta.pageCount || 1,
+      previewDataUrl: technicalMeta.previewDataUrl,
+      previewType: technicalMeta.previewType,
+      isVector: technicalMeta.isVector,
+      detectedElementsCount: 0,
+      openItemsCount: 0,
+      isArchived: false,
+      version: 1,
+      uploadedBy: 'Estimator',
+    };
+
+    const saved = await DocumentStorageService.saveDocument(draftDoc, file);
+    await handleUploadSuccess([saved]);
+    setConflictData(null);
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setSelectedDiscipline('All');
+    setSelectedDocType('All');
+    setSelectedLevel('All');
+    setSelectedFormat('All');
+    setSelectedAnalysisStatus('All');
+    setStatusView('Active');
+  };
+
+  const activeFiltersCount = [
+    selectedDiscipline !== 'All',
+    selectedDocType !== 'All',
+    selectedLevel !== 'All',
+    selectedFormat !== 'All',
+    selectedAnalysisStatus !== 'All',
+    searchQuery.trim().length > 0,
+  ].filter(Boolean).length;
+
   const currentSeriesRevisions = useMemo(() => {
     if (!selectedDoc) return [];
     const seriesId = selectedDoc.drawingSeriesId || selectedDoc.drawingNumber;
@@ -603,7 +842,56 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
   }, [selectedDoc, documents]);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#F8FAFC] text-slate-800 select-none overflow-hidden font-sans">
+    <div 
+      className="flex-1 flex flex-col h-full bg-[#F8FAFC] text-slate-800 select-none overflow-hidden font-sans relative"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Hidden Native File Pickers */}
+      <input
+        ref={directFileInputRef}
+        type="file"
+        multiple
+        accept=".pdf,.dwg,.dxf,.ifc,.png,.jpg,.jpeg,.zip,.svg,.webp,.tif,.tiff"
+        onChange={(e) => handleDirectFiles(e.target.files)}
+        className="hidden"
+      />
+      <input
+        ref={cadFileInputRef}
+        type="file"
+        multiple
+        accept=".dwg,.dxf"
+        onChange={(e) => handleDirectFiles(e.target.files, 'Tender Drawing')}
+        className="hidden"
+      />
+      <input
+        ref={ifcFileInputRef}
+        type="file"
+        multiple
+        accept=".ifc"
+        onChange={(e) => handleDirectFiles(e.target.files, 'IFC / BIM')}
+        className="hidden"
+      />
+      <input
+        ref={sketchFileInputRef}
+        type="file"
+        multiple
+        accept=".png,.jpg,.jpeg,.webp,.pdf"
+        onChange={(e) => handleDirectFiles(e.target.files, 'Hand Sketch')}
+        className="hidden"
+      />
+
+      {/* Global Drag Overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 z-50 bg-indigo-950/80 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-white border-4 border-dashed border-indigo-400 rounded-xl pointer-events-none">
+          <Upload className="w-16 h-16 text-indigo-300 animate-bounce mb-4" />
+          <h2 className="text-2xl font-black tracking-wide">Drop Drawings Here to Upload</h2>
+          <p className="text-sm text-indigo-200 mt-1">Supports PDF, DWG, DXF, IFC, JPG, PNG, and ZIP</p>
+        </div>
+      )}
+
       {/* Top Header & Breadcrumb Bar */}
       <div className="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-2xs">
         {/* Breadcrumb */}
@@ -625,37 +913,278 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
           <span className="text-slate-300">/</span>
           <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 flex items-center gap-1">
             <FolderOpen className="w-3 h-3" />
-            <span>Drawings & Documents</span>
+            <span>Drawings ({documents.filter((d) => !d.isArchived).length})</span>
           </span>
         </div>
 
         {/* Global Action Buttons */}
         <div className="flex items-center gap-2">
+          {/* View Mode Switcher */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 mr-1">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                viewMode === 'table' ? 'bg-white text-indigo-600 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Table Register View"
+            >
+              <List className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                viewMode === 'cards' ? 'bg-white text-indigo-600 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Cards & Thumbnails Grid View"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           <button
             onClick={handleExportExcel}
             className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
             title="Export full drawing register to Excel spreadsheet"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-            <span>EXPORT REGISTER</span>
+            <span className="hidden sm:inline">EXPORT REGISTER</span>
           </button>
 
           <button
-            onClick={() => setIsHandSketchModalOpen(true)}
-            className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+            onClick={() => cadFileInputRef.current?.click()}
+            className="px-3 py-1.5 rounded-lg bg-white border border-sky-300 hover:bg-sky-50 text-sky-900 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+            title="Import AutoCAD DWG or DXF files"
+          >
+            <Layers className="w-3.5 h-3.5 text-sky-600" />
+            <span className="hidden md:inline">IMPORT CAD</span>
+          </button>
+
+          <button
+            onClick={() => ifcFileInputRef.current?.click()}
+            className="px-3 py-1.5 rounded-lg bg-white border border-teal-300 hover:bg-teal-50 text-teal-900 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+            title="Import IFC BIM Model"
+          >
+            <Box className="w-3.5 h-3.5 text-teal-600" />
+            <span className="hidden md:inline">IMPORT IFC</span>
+          </button>
+
+          <button
+            onClick={() => setIsRealHandSketchCenterOpen(true)}
+            className="px-3 py-1.5 rounded-lg bg-white border border-amber-300 hover:bg-amber-50 text-amber-900 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+            title="Upload Hand Sketch or Site Photo"
           >
             <PenTool className="w-3.5 h-3.5 text-amber-600" />
-            <span>+ UPLOAD HAND SKETCH</span>
+            <span className="hidden sm:inline">+ UPLOAD HAND SKETCH</span>
           </button>
 
+          {/* Primary Upload Drawing Button (Opens real native file picker) */}
           <button
-            onClick={() => setIsUploadModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+            onClick={() => directFileInputRef.current?.click()}
+            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-sm ring-2 ring-indigo-300/40 cursor-pointer"
+            title="Open system file browser to select drawing files"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>+ UPLOAD DRAWINGS / DOCUMENTS</span>
+            <Plus className="w-4 h-4 text-indigo-200" />
+            <span>+ ADD DRAWING</span>
+          </button>
+
+          {/* Upload Drawings Center Modal */}
+          <button
+            onClick={() => setIsRealUploadCenterOpen(true)}
+            className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+            title="Open Drawing Upload Center Modal"
+          >
+            <Upload className="w-3.5 h-3.5 text-slate-300" />
+            <span>UPLOAD DRAWINGS</span>
+          </button>
+
+          {/* Autonomous Real BOQ Generator Button */}
+          <button
+            onClick={() => {
+              setBoqPipelineTargetDocs(documents.length > 0 ? documents : undefined);
+              setIsBoqPipelineModalOpen(true);
+            }}
+            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            title="Upload DWG or PDF Drawing to Auto-Generate Real BOQ with Proof of Calculation"
+          >
+            <Calculator className="w-3.5 h-3.5 text-slate-950" />
+            <span>AUTO-GENERATE REAL BOQ</span>
           </button>
         </div>
+      </div>
+
+      {/* Direct Upload Progress Banner */}
+      {isDirectUploading && (
+        <div className="bg-indigo-900 text-white px-6 py-2.5 flex items-center justify-between text-xs font-semibold shadow-md animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <Loader2 className="w-4 h-4 text-indigo-300 animate-spin" />
+            <span>{uploadStatusText}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-48 bg-indigo-950 rounded-full h-2 overflow-hidden border border-indigo-700">
+              <div
+                className="bg-indigo-400 h-full transition-all duration-200 rounded-full"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            <span className="font-mono text-indigo-200">{uploadProgress}%</span>
+          </div>
+        </div>
+      )}
+
+      {directUploadError && (
+        <div className="bg-rose-50 border-b border-rose-200 px-6 py-2 text-xs text-rose-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{directUploadError}</span>
+          </div>
+          <button onClick={() => setDirectUploadError(null)} className="text-rose-500 hover:text-rose-800">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Quick Category Counter Pills Bar */}
+      <div className="bg-white border-b border-slate-200 px-6 py-2 flex items-center gap-2 overflow-x-auto shrink-0 text-xs">
+        <span className="text-[10px] font-bold text-slate-400 uppercase mr-1">Categories:</span>
+        <button
+          onClick={() => setSelectedDiscipline('All')}
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+            selectedDiscipline === 'All'
+              ? 'bg-indigo-600 text-white font-bold shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span>All Drawings</span>
+          <span className={`text-[10px] px-1.5 rounded-full ${selectedDiscipline === 'All' ? 'bg-indigo-800 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {counts.total}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setSelectedDiscipline('Architectural')}
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+            selectedDiscipline === 'Architectural'
+              ? 'bg-blue-600 text-white font-bold shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span>Architectural</span>
+          <span className={`text-[10px] px-1.5 rounded-full ${selectedDiscipline === 'Architectural' ? 'bg-blue-800 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {counts.architectural}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setSelectedDiscipline('Structural')}
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+            selectedDiscipline === 'Structural'
+              ? 'bg-indigo-600 text-white font-bold shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span>Structural</span>
+          <span className={`text-[10px] px-1.5 rounded-full ${selectedDiscipline === 'Structural' ? 'bg-indigo-800 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {counts.structural}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setSelectedDocType('RCC')}
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+            selectedDocType === 'RCC'
+              ? 'bg-emerald-600 text-white font-bold shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span>RCC</span>
+          <span className={`text-[10px] px-1.5 rounded-full ${selectedDocType === 'RCC' ? 'bg-emerald-800 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {counts.rcc}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setSelectedDocType('Rebar')}
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+            selectedDocType === 'Rebar'
+              ? 'bg-amber-600 text-white font-bold shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span>Rebar</span>
+          <span className={`text-[10px] px-1.5 rounded-full ${selectedDocType === 'Rebar' ? 'bg-amber-800 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {counts.rebar}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setSelectedDiscipline('Steel')}
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+            selectedDiscipline === 'Steel'
+              ? 'bg-slate-800 text-white font-bold shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span>Steel</span>
+          <span className={`text-[10px] px-1.5 rounded-full ${selectedDiscipline === 'Steel' ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {counts.steel}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setSelectedDiscipline('MEP')}
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+            selectedDiscipline === 'MEP'
+              ? 'bg-purple-600 text-white font-bold shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span>MEP</span>
+          <span className={`text-[10px] px-1.5 rounded-full ${selectedDiscipline === 'MEP' ? 'bg-purple-800 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {counts.mep}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setSelectedDocType('Shop Drawing')}
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+            selectedDocType === 'Shop Drawing'
+              ? 'bg-cyan-600 text-white font-bold shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span>Shop</span>
+          <span className={`text-[10px] px-1.5 rounded-full ${selectedDocType === 'Shop Drawing' ? 'bg-cyan-800 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {counts.shop}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setSelectedFormat('IFC')}
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+            selectedFormat === 'IFC'
+              ? 'bg-teal-600 text-white font-bold shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span>IFC BIM</span>
+          <span className={`text-[10px] px-1.5 rounded-full ${selectedFormat === 'IFC' ? 'bg-teal-800 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {counts.ifc}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setSelectedDocType('Hand Sketch')}
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+            selectedDocType === 'Hand Sketch'
+              ? 'bg-orange-600 text-white font-bold shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span>Hand Sketch</span>
+          <span className={`text-[10px] px-1.5 rounded-full ${selectedDocType === 'Hand Sketch' ? 'bg-orange-800 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {counts.sketch}
+          </span>
+        </button>
       </div>
 
       {/* 3-COLUMN MAIN LAYOUT */}
@@ -688,7 +1217,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                 onClick={() => setStatusView('Active')}
                 className={`py-1 rounded-md transition-all cursor-pointer ${
                   statusView === 'Active'
-                    ? 'bg-white text-slate-900 shadow-2xs'
+                    ? 'bg-white text-slate-900 shadow-2xs font-bold'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -698,7 +1227,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                 onClick={() => setStatusView('Archived')}
                 className={`py-1 rounded-md transition-all cursor-pointer ${
                   statusView === 'Archived'
-                    ? 'bg-white text-slate-900 shadow-2xs'
+                    ? 'bg-white text-slate-900 shadow-2xs font-bold'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -710,7 +1239,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
           {/* Discipline Categories List */}
           <div className="p-3 space-y-1">
             <span className="text-[10px] font-bold uppercase text-slate-400 px-2 block mb-1">
-              Discipline Categories
+              Discipline Register
             </span>
             {disciplinesList.map((disc) => {
               const count =
@@ -761,7 +1290,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
               <select
                 value={selectedDocType}
                 onChange={(e) => setSelectedDocType(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-md p-1.5 text-xs text-slate-800"
+                className="w-full bg-slate-50 border border-slate-200 rounded-md p-1.5 text-xs text-slate-800 focus:outline-hidden focus:border-indigo-500"
               >
                 <option value="All">All Types</option>
                 {docTypesList.map((t) => (
@@ -779,7 +1308,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                 <select
                   value={selectedLevel}
                   onChange={(e) => setSelectedLevel(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-md p-1.5 text-xs text-slate-800"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-md p-1.5 text-xs text-slate-800 focus:outline-hidden focus:border-indigo-500"
                 >
                   <option value="All">All Levels</option>
                   {uniqueLevels.map((lvl) => (
@@ -798,7 +1327,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                 <select
                   value={selectedFormat}
                   onChange={(e) => setSelectedFormat(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-md p-1.5 text-xs text-slate-800"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-md p-1.5 text-xs text-slate-800 focus:outline-hidden focus:border-indigo-500"
                 >
                   <option value="All">All Formats</option>
                   {uniqueFormats.map((f) => (
@@ -816,7 +1345,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
               <select
                 value={selectedAnalysisStatus}
                 onChange={(e) => setSelectedAnalysisStatus(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-md p-1.5 text-xs text-slate-800"
+                className="w-full bg-slate-50 border border-slate-200 rounded-md p-1.5 text-xs text-slate-800 focus:outline-hidden focus:border-indigo-500"
               >
                 <option value="All">All Analysis Statuses</option>
                 <option value="NOT_ANALYZED">Not Analyzed</option>
@@ -832,14 +1361,43 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
         {/* 2. CENTER COLUMN: DRAWING / DOCUMENT REGISTER */}
         {/* ========================================================================= */}
         <div className="flex-1 flex flex-col overflow-hidden bg-white border-r border-slate-200">
-          {/* Top Search Toolbar */}
+          {/* Prominent Real Drawing Intake Banner Dropzone */}
+          <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-indigo-100 flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                <Upload className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-slate-900 flex items-center gap-2">
+                  <span>REAL DRAWING INGESTION & PARSER PIPELINE</span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700 font-bold">
+                    {projectName}
+                  </span>
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  Upload PDF, DWG, DXF, IFC, JPG, PNG, and ZIP drawings. Files are persistently stored in IndexedDB.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => directFileInputRef.current?.click()}
+                className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-xs cursor-pointer ring-2 ring-indigo-300/40"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ ADD DRAWING</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Top Search & Filter Bar */}
           <div className="p-3 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between gap-3 shrink-0">
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
                 type="text"
-                placeholder="Search drawing number, document ID, title, level, filename..."
+                placeholder="Search by drawing number, DRW-XXXX, title, filename, discipline..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-indigo-500 shadow-2xs"
@@ -854,127 +1412,145 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
               )}
             </div>
 
-            <div className="text-xs text-slate-500 font-mono">
-              Showing <strong>{filteredDocuments.length}</strong> of {documents.length} documents
+            <div className="text-xs text-slate-500 font-mono flex items-center gap-3">
+              <span>
+                Showing <strong>{filteredDocuments.length}</strong> of {documents.length} drawings
+              </span>
             </div>
           </div>
 
-          {/* Register Table View */}
+          {/* REGISTER VIEW: TABLE OR CARDS */}
           <div className="flex-1 overflow-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider text-[10px] sticky top-0 z-10 border-b border-slate-200 select-none">
-                <tr>
-                  <th
-                    onClick={() => handleSort('drawingNumber')}
-                    className="py-2.5 px-3 cursor-pointer hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>Drawing No.</span>
-                      {sortField === 'drawingNumber' && (
-                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
-                      )}
-                    </div>
-                  </th>
+            {isLoading ? (
+              <div className="h-full flex flex-col items-center justify-center p-12 text-slate-400">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-3" />
+                <p className="text-sm font-semibold text-slate-700">Loading project drawings from storage...</p>
+              </div>
+            ) : filteredDocuments.length === 0 ? (
+              /* EMPTY STATE: PROMINENT DRAG & DROP ZONE */
+              <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+                <div className="w-full max-w-xl border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50/60 hover:bg-indigo-50/30 rounded-2xl p-8 transition-all flex flex-col items-center justify-center space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-inner">
+                    <FolderOpen className="w-8 h-8" />
+                  </div>
 
-                  <th
-                    onClick={() => handleSort('title')}
-                    className="py-2.5 px-3 cursor-pointer hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>Title</span>
-                      {sortField === 'title' && (
-                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
-                      )}
-                    </div>
-                  </th>
+                  <div>
+                    <h3 className="text-base font-black text-slate-800 uppercase tracking-tight">
+                      NO DRAWINGS UPLOADED
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                      {documents.length === 0
+                        ? 'No drawing files associated with this project yet. Drag files below or click to select.'
+                        : 'No drawings match the current filter criteria.'}
+                    </p>
+                  </div>
 
-                  <th className="py-2.5 px-3">Type</th>
-                  <th
-                    onClick={() => handleSort('discipline')}
-                    className="py-2.5 px-3 cursor-pointer hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>Discipline</span>
-                      {sortField === 'discipline' && (
-                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
-                      )}
-                    </div>
-                  </th>
+                  {/* Drag & Drop Graphic Box */}
+                  <div className="w-full max-w-sm border border-indigo-200 bg-white rounded-xl p-5 shadow-xs flex flex-col items-center justify-center space-y-3">
+                    <Upload className="w-8 h-8 text-indigo-500 animate-pulse" />
+                    <p className="text-xs font-bold text-slate-700">Drag drawing files here</p>
+                    <span className="text-[10px] text-slate-400 font-mono">or</span>
+                    <button
+                      onClick={() => directFileInputRef.current?.click()}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>[ + ADD FIRST DRAWING ]</span>
+                    </button>
+                    <p className="text-[10px] text-slate-400 font-mono pt-1">
+                      PDF / DWG / DXF / IFC / JPG / PNG / ZIP
+                    </p>
+                  </div>
 
-                  <th
-                    onClick={() => handleSort('revision')}
-                    className="py-2.5 px-2 text-center cursor-pointer hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      <span>Rev</span>
-                      {sortField === 'revision' && (
-                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
-                      )}
-                    </div>
-                  </th>
-
-                  <th
-                    onClick={() => handleSort('drawingDate')}
-                    className="py-2.5 px-3 cursor-pointer hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>Date</span>
-                      {sortField === 'drawingDate' && (
-                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
-                      )}
-                    </div>
-                  </th>
-
-                  <th className="py-2.5 px-3">Level</th>
-                  <th className="py-2.5 px-2 text-center">Format</th>
-                  <th
-                    onClick={() => handleSort('status')}
-                    className="py-2.5 px-2 text-center cursor-pointer hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      <span>Status</span>
-                      {sortField === 'status' && (
-                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
-                      )}
-                    </div>
-                  </th>
-
-                  <th className="py-2.5 px-3 text-right">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-slate-100 font-sans">
-                {isLoading ? (
+                  {activeFiltersCount > 0 && (
+                    <button
+                      onClick={handleClearFilters}
+                      className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-xs font-semibold rounded-lg text-slate-700 cursor-pointer"
+                    >
+                      Clear Active Filters
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : viewMode === 'table' ? (
+              /* TABLE VIEW */
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider text-[10px] sticky top-0 z-10 border-b border-slate-200 select-none">
                   <tr>
-                    <td colSpan={9} className="text-center py-12 text-slate-400">
-                      Loading project drawings...
-                    </td>
-                  </tr>
-                ) : filteredDocuments.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="text-center py-16 text-slate-400 space-y-3">
-                      <FolderOpen className="w-10 h-10 mx-auto text-slate-300" />
-                      <div>
-                        <p className="text-sm font-semibold text-slate-700">No documents found</p>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {documents.length === 0
-                            ? 'Upload project drawings or hand sketches using the buttons above.'
-                            : 'No documents match the current filter criteria.'}
-                        </p>
+                    <th
+                      onClick={() => handleSort('drawingNumber')}
+                      className="py-2.5 px-3 cursor-pointer hover:bg-slate-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Drawing ID / No.</span>
+                        {sortField === 'drawingNumber' && (
+                          sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
+                        )}
                       </div>
-                      {activeFiltersCount > 0 && (
-                        <button
-                          onClick={handleClearFilters}
-                          className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-xs font-semibold rounded text-slate-700"
-                        >
-                          Clear Filters
-                        </button>
-                      )}
-                    </td>
+                    </th>
+
+                    <th
+                      onClick={() => handleSort('title')}
+                      className="py-2.5 px-3 cursor-pointer hover:bg-slate-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>File Name / Title</span>
+                        {sortField === 'title' && (
+                          sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
+                        )}
+                      </div>
+                    </th>
+
+                    <th className="py-2.5 px-2">Type</th>
+                    <th
+                      onClick={() => handleSort('discipline')}
+                      className="py-2.5 px-2 cursor-pointer hover:bg-slate-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Discipline</span>
+                        {sortField === 'discipline' && (
+                          sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
+                        )}
+                      </div>
+                    </th>
+
+                    <th
+                      onClick={() => handleSort('revision')}
+                      className="py-2.5 px-2 text-center cursor-pointer hover:bg-slate-100 transition-colors"
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span>Rev</span>
+                        {sortField === 'revision' && (
+                          sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
+                        )}
+                      </div>
+                    </th>
+
+                    <th className="py-2.5 px-2 text-center">Format</th>
+
+                    <th
+                      onClick={() => handleSort('status')}
+                      className="py-2.5 px-2 text-center cursor-pointer hover:bg-slate-100 transition-colors"
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span>Status</span>
+                        {sortField === 'status' && (
+                          sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
+                        )}
+                      </div>
+                    </th>
+
+                    <th className="py-2.5 px-2 text-center">Viewer</th>
+                    <th className="py-2.5 px-2 text-center">Process</th>
+                    <th className="py-2.5 px-3 text-right">Actions</th>
                   </tr>
-                ) : (
-                  filteredDocuments.map((doc) => {
+                </thead>
+
+                <tbody className="divide-y divide-slate-100 font-sans">
+                  {filteredDocuments.map((doc) => {
                     const isSelected = doc.id === selectedDocId;
+                    const isProcessing = processingDocIds.has(doc.id);
+                    const isProcessed = doc.status === 'PROCESSED' || doc.analysisStatus === 'ANALYZED';
 
                     return (
                       <tr
@@ -986,12 +1562,17 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                             : 'hover:bg-slate-50/80'
                         }`}
                       >
-                        {/* Drawing Number */}
+                        {/* Drawing ID & Number */}
                         <td className="py-2.5 px-3 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono font-bold text-indigo-700">
-                              {doc.drawingNumber || <span className="text-slate-400 italic">Unassigned</span>}
+                              {doc.id}
                             </span>
+                            {doc.drawingNumber && (
+                              <span className="text-[10px] font-mono text-slate-500">
+                                ({doc.drawingNumber})
+                              </span>
+                            )}
                             {doc.isCurrentRevision && (
                               <span className="text-[9px] px-1 py-0.2 rounded font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                                 CURRENT
@@ -999,27 +1580,29 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                             )}
                           </div>
                           <span className="text-[10px] text-slate-400 font-mono block">
-                            {doc.id}
+                            {doc.level || 'All Floors'}
                           </span>
                         </td>
 
-                        {/* Title */}
-                        <td className="py-2.5 px-3">
-                          <p className="font-semibold text-slate-900 line-clamp-1">{doc.title}</p>
-                          <p className="text-[10px] text-slate-400 truncate max-w-xs font-mono">
-                            {doc.sourceFileName}
+                        {/* File Name & Title */}
+                        <td className="py-2.5 px-3 max-w-xs">
+                          <p className="font-semibold text-slate-900 line-clamp-1">
+                            {doc.title || doc.sourceFileName}
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate font-mono">
+                            {doc.sourceFileName} {doc.fileSize ? `• ${(doc.fileSize / 1024 / 1024).toFixed(2)} MB` : ''}
                           </p>
                         </td>
 
                         {/* Document Type */}
-                        <td className="py-2.5 px-3 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                        <td className="py-2.5 px-2 whitespace-nowrap">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
                             {doc.documentType}
                           </span>
                         </td>
 
                         {/* Discipline */}
-                        <td className="py-2.5 px-3 whitespace-nowrap">
+                        <td className="py-2.5 px-2 whitespace-nowrap">
                           <span className="text-xs text-slate-700 font-medium">{doc.discipline}</span>
                         </td>
 
@@ -1028,19 +1611,9 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                           {doc.revision}
                         </td>
 
-                        {/* Drawing Date */}
-                        <td className="py-2.5 px-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">
-                          {doc.drawingDate || '-'}
-                        </td>
-
-                        {/* Level */}
-                        <td className="py-2.5 px-3 text-slate-700 text-xs whitespace-nowrap">
-                          {doc.level || '-'}
-                        </td>
-
                         {/* Format */}
                         <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-50 text-slate-700 border border-slate-200">
+                          <span className="font-mono font-bold text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
                             {doc.fileFormat}
                           </span>
                         </td>
@@ -1051,27 +1624,85 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               doc.isArchived
                                 ? 'bg-slate-100 text-slate-500 border border-slate-200'
-                                : doc.status === 'READY'
+                                : doc.status === 'PROCESSED'
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                : doc.status === 'PROCESSING' || isProcessing
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200 animate-pulse'
+                                : doc.status === 'PARSER_REQUIRED'
+                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                : doc.status === 'FAILED'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                : 'bg-blue-50 text-blue-700 border border-blue-200'
                             }`}
                           >
-                            {doc.status}
+                            {isProcessing ? 'PROCESSING...' : doc.status}
                           </span>
+                        </td>
+
+                        {/* Preview / Open button */}
+                        <td className="py-2.5 px-2 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => handleOpenFullScreen(doc, e)}
+                            className="px-2.5 py-1 rounded bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1 mx-auto transition-colors border border-slate-200 shadow-2xs cursor-pointer"
+                            title="Open Drawing in Full Viewer"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>OPEN</span>
+                          </button>
+                        </td>
+
+                        {/* Process button */}
+                        <td className="py-2.5 px-2 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          {isProcessing ? (
+                            <button
+                              disabled
+                              className="px-2 py-1 rounded bg-blue-100 text-blue-800 text-xs font-bold flex items-center gap-1 mx-auto cursor-not-allowed"
+                            >
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Processing...</span>
+                            </button>
+                          ) : isProcessed ? (
+                            <button
+                              onClick={(e) => handleRowProcessDrawing(doc, e)}
+                              className="px-2 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1 mx-auto border border-emerald-200 transition-colors cursor-pointer"
+                              title="Re-run AI extraction"
+                            >
+                              <Sparkles className="w-3 h-3 text-emerald-600" />
+                              <span>Re-Process</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => handleRowProcessDrawing(doc, e)}
+                              className="px-2.5 py-1 rounded bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[10px] font-black flex items-center gap-1 mx-auto shadow-2xs transition-all cursor-pointer"
+                              title="Run AI extraction on this drawing"
+                            >
+                              <Sparkles className="w-3 h-3 text-amber-300" />
+                              <span>PROCESS</span>
+                            </button>
+                          )}
                         </td>
 
                         {/* Action buttons */}
                         <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => {
-                                handleSelectDoc(doc);
-                                setIsFullScreenOpen(true);
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setBoqPipelineTargetDocs([doc]);
+                                setIsBoqPipelineModalOpen(true);
                               }}
-                              className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
-                              title="Full Screen Viewer"
+                              className="p-1 rounded text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                              title="Auto-Generate Real BOQ with Proof of Calculation"
                             >
-                              <Eye className="w-3.5 h-3.5" />
+                              <Calculator className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              onClick={(e) => handleOpenDrawingDetails(doc, e)}
+                              className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
+                              title="Inspect Details"
+                            >
+                              <Info className="w-3.5 h-3.5" />
                             </button>
 
                             <button
@@ -1095,7 +1726,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                             </button>
 
                             <button
-                              onClick={() => handleRequestPermanentDelete(doc)}
+                              onClick={(e) => handleRequestPermanentDelete(doc, e)}
                               className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100 transition-colors"
                               title="Delete Permanently"
                             >
@@ -1105,25 +1736,149 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                         </td>
                       </tr>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              /* CARDS / GRID VIEW (Requirement 12) */
+              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredDocuments.map((doc) => {
+                  const isSelected = doc.id === selectedDocId;
+                  const isProcessing = processingDocIds.has(doc.id);
+
+                  return (
+                    <div
+                      key={doc.id}
+                      onClick={() => handleSelectDoc(doc)}
+                      className={`bg-white rounded-xl border transition-all overflow-hidden flex flex-col cursor-pointer shadow-xs hover:shadow-md ${
+                        isSelected
+                          ? 'border-indigo-600 ring-2 ring-indigo-200'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      {/* Card Thumbnail / Preview */}
+                      <div className="h-40 bg-slate-950 relative overflow-hidden flex items-center justify-center border-b border-slate-200">
+                        {doc.previewDataUrl ? (
+                          <img
+                            src={doc.previewDataUrl}
+                            alt={doc.title}
+                            className="max-h-full max-w-full object-contain"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="text-slate-500 text-center p-4">
+                            {doc.fileFormat === 'PDF' && <FileText className="w-12 h-12 mx-auto text-indigo-400 mb-1" />}
+                            {['DWG', 'DXF'].includes(doc.fileFormat) && <Layers className="w-12 h-12 mx-auto text-sky-400 mb-1" />}
+                            {doc.fileFormat === 'IFC' && <Box className="w-12 h-12 mx-auto text-teal-400 mb-1" />}
+                            {doc.fileFormat === 'Image' && <Eye className="w-12 h-12 mx-auto text-amber-400 mb-1" />}
+                            <span className="text-[11px] font-mono block">{doc.sourceFileName}</span>
+                          </div>
+                        )}
+
+                        {/* Top Badges */}
+                        <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900/90 text-indigo-300 border border-slate-700">
+                            {doc.id}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900/90 text-white border border-slate-700">
+                            {doc.revision}
+                          </span>
+                        </div>
+
+                        <div className="absolute top-2 right-2">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                              doc.status === 'PROCESSED'
+                                ? 'bg-emerald-500 text-white'
+                                : doc.status === 'PARSER_REQUIRED'
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-indigo-600 text-white'
+                            }`}
+                          >
+                            {doc.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Info */}
+                      <div className="p-3.5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">
+                              {doc.discipline} • {doc.documentType}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {doc.fileSize ? `${Math.round(doc.fileSize / 1024)} KB` : ''}
+                            </span>
+                          </div>
+
+                          <h4 className="font-bold text-xs text-slate-900 line-clamp-1" title={doc.title}>
+                            {doc.title || doc.sourceFileName}
+                          </h4>
+                          <p className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
+                            {doc.sourceFileName}
+                          </p>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100 gap-1.5">
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => handleOpenFullScreen(doc, e)}
+                              className="px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold flex items-center gap-1 transition-colors"
+                            >
+                              <Eye className="w-3 h-3" />
+                              <span>OPEN</span>
+                            </button>
+
+                            <button
+                              onClick={(e) => handleRowProcessDrawing(doc, e)}
+                              disabled={isProcessing}
+                              className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold flex items-center gap-1 transition-colors"
+                            >
+                              <Sparkles className="w-3 h-3 text-amber-500" />
+                              <span>ANALYZE</span>
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => handleOpenDrawingDetails(doc, e)}
+                              className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100"
+                              title="Edit / Details"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => handleRequestPermanentDelete(doc, e)}
+                              className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* 3. RIGHT COLUMN: PREVIEW / DOCUMENT INFORMATION PANEL */}
+        {/* 3. RIGHT COLUMN: PREVIEW / TRACEABILITY / METADATA PANEL */}
         {/* ========================================================================= */}
         <div className="w-96 bg-white flex flex-col shrink-0 overflow-hidden">
           {selectedDoc ? (
             <>
               {/* Top Tabs */}
               <div className="p-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-1 bg-slate-200/60 p-0.5 rounded-lg text-xs font-semibold">
+                <div className="flex items-center gap-1 bg-slate-200/60 p-0.5 rounded-lg text-xs font-semibold overflow-x-auto">
                   <button
                     onClick={() => setRightPanelTab('preview')}
-                    className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                       rightPanelTab === 'preview'
                         ? 'bg-white text-slate-900 shadow-2xs font-bold'
                         : 'text-slate-600 hover:text-slate-900'
@@ -1132,8 +1887,18 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                     Preview
                   </button>
                   <button
+                    onClick={() => setRightPanelTab('traceability')}
+                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                      rightPanelTab === 'traceability'
+                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Links
+                  </button>
+                  <button
                     onClick={() => setRightPanelTab('metadata')}
-                    className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                       rightPanelTab === 'metadata'
                         ? 'bg-white text-slate-900 shadow-2xs font-bold'
                         : 'text-slate-600 hover:text-slate-900'
@@ -1143,13 +1908,23 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                   </button>
                   <button
                     onClick={() => setRightPanelTab('revisions')}
-                    className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                       rightPanelTab === 'revisions'
                         ? 'bg-white text-slate-900 shadow-2xs font-bold'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    Revisions ({currentSeriesRevisions.length})
+                    Revs ({currentSeriesRevisions.length})
+                  </button>
+                  <button
+                    onClick={() => setRightPanelTab('notes')}
+                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                      rightPanelTab === 'notes'
+                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Notes
                   </button>
                 </div>
 
@@ -1160,13 +1935,6 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                     title="Open Full Screen"
                   >
                     <Maximize2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => DocumentStorageService.downloadOriginalFile(selectedDoc)}
-                    className="p-1.5 rounded-md hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
-                    title="Download Original"
-                  >
-                    <Download className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -1198,60 +1966,28 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
 
                     <div className="flex items-center gap-1.5">
                       <button
-                        onClick={() => setPreviewRotation((r) => (r + 90) % 360)}
-                        className="p-1 rounded hover:bg-slate-800 text-slate-300"
-                        title="Rotate 90°"
+                        onClick={() => setCalibratingDoc(selectedDoc)}
+                        className="px-2 py-1 rounded bg-slate-800 hover:bg-indigo-950 hover:text-indigo-300 text-slate-300 text-[10px] font-bold border border-slate-700 flex items-center gap-1"
+                        title="Calibrate Drawing Scale"
                       >
-                        <RotateCw className="w-3.5 h-3.5" />
+                        <Ruler className="w-3 h-3 text-indigo-400" />
+                        <span>Calibrate</span>
                       </button>
 
-                      {['DWG', 'DXF'].includes(selectedDoc.fileFormat) && (
-                        <button
-                          onClick={() => setPreviewCadDark(!previewCadDark)}
-                          className="p-1 rounded hover:bg-slate-800 text-slate-300"
-                          title="Toggle CAD theme"
-                        >
-                          {previewCadDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5" />}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setComparingDoc(selectedDoc)}
+                        className="px-2 py-1 rounded bg-slate-800 hover:bg-blue-950 hover:text-blue-300 text-slate-300 text-[10px] font-bold border border-slate-700 flex items-center gap-1"
+                        title="Compare Revision Versions"
+                      >
+                        <GitCompare className="w-3 h-3 text-blue-400" />
+                        <span>Compare</span>
+                      </button>
                     </div>
                   </div>
 
                   {/* Preview Canvas */}
                   <div className="flex-1 overflow-auto flex items-center justify-center p-4 relative bg-[#0B0F19]">
-                    {/* PDF Preview */}
-                    {selectedDoc.fileFormat === 'PDF' && (
-                      <div
-                        style={{
-                          transform: `scale(${previewZoom / 100}) rotate(${previewRotation}deg)`,
-                          transformOrigin: 'center center',
-                        }}
-                        className="w-full max-w-sm bg-white rounded shadow-lg p-3 text-slate-900 text-xs select-none pointer-events-none"
-                      >
-                        <div className="border-b border-slate-300 pb-1 mb-2 flex justify-between">
-                          <span className="font-bold text-[10px] text-indigo-700">{selectedDoc.drawingNumber || selectedDoc.id}</span>
-                          <span className="text-[10px] font-mono text-slate-500">{selectedDoc.revision}</span>
-                        </div>
-                        <p className="font-bold text-[11px] text-slate-800 line-clamp-1">{selectedDoc.title}</p>
-                        <div className="h-44 border border-dashed border-slate-200 rounded my-2 flex items-center justify-center bg-slate-50 relative overflow-hidden">
-                          <svg viewBox="0 0 400 300" className="w-full h-full p-2 opacity-80">
-                            <rect x="50" y="50" width="300" height="200" fill="none" stroke="#2563EB" strokeWidth="2" />
-                            <line x1="50" y1="150" x2="350" y2="150" stroke="#94A3B8" strokeDasharray="4,4" />
-                            <line x1="200" y1="50" x2="200" y2="250" stroke="#94A3B8" strokeDasharray="4,4" />
-                            <rect x="40" y="40" width="20" height="20" fill="#1E293B" />
-                            <rect x="190" y="40" width="20" height="20" fill="#1E293B" />
-                            <rect x="340" y="40" width="20" height="20" fill="#1E293B" />
-                            <rect x="40" y="140" width="20" height="20" fill="#1E293B" />
-                            <rect x="190" y="140" width="20" height="20" fill="#1E293B" />
-                            <rect x="340" y="140" width="20" height="20" fill="#1E293B" />
-                          </svg>
-                        </div>
-                        <p className="text-[9px] text-slate-400 font-mono">Scale: {selectedDoc.scaleRatio || '1:100'} • {selectedDoc.level}</p>
-                      </div>
-                    )}
-
-                    {/* Image / Hand Sketch Preview */}
-                    {(selectedDoc.fileFormat === 'Image' || selectedDoc.fileFormat === 'Sketch') && (
+                    {selectedDoc.previewDataUrl ? (
                       <div
                         style={{
                           transform: `scale(${previewZoom / 100}) rotate(${previewRotation}deg)`,
@@ -1259,88 +1995,133 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                         }}
                         className="max-w-full max-h-full flex items-center justify-center"
                       >
-                        {selectedDoc.previewDataUrl ? (
-                          <img
-                            src={selectedDoc.previewDataUrl}
-                            alt={selectedDoc.title}
-                            className="max-h-64 rounded shadow-md object-contain border border-slate-700"
-                          />
-                        ) : (
-                          <div className="p-6 text-center text-slate-400">
-                            <FileText className="w-8 h-8 mx-auto mb-2 text-indigo-400" />
-                            <p className="font-bold text-white text-xs">{selectedDoc.title}</p>
-                          </div>
-                        )}
+                        <img
+                          src={selectedDoc.previewDataUrl}
+                          alt={selectedDoc.title}
+                          className="max-h-64 rounded shadow-md object-contain border border-slate-700"
+                          referrerPolicy="no-referrer"
+                        />
                       </div>
-                    )}
-
-                    {/* CAD Preview */}
-                    {(selectedDoc.fileFormat === 'DWG' || selectedDoc.fileFormat === 'DXF') && (
-                      <div
-                        style={{
-                          transform: `scale(${previewZoom / 100}) rotate(${previewRotation}deg)`,
-                          transformOrigin: 'center center',
-                        }}
-                        className="w-full h-56 rounded border border-slate-800 bg-[#0E1117] flex items-center justify-center p-2 relative overflow-hidden"
-                      >
-                        <svg viewBox="0 0 500 350" className="w-full h-full">
-                          <rect x="50" y="50" width="400" height="250" fill="none" stroke="#38BDF8" strokeWidth="2" />
-                          <line x1="50" y1="175" x2="450" y2="175" stroke="#38BDF8" strokeWidth="1" strokeDasharray="4,4" />
-                          <line x1="250" y1="50" x2="250" y2="300" stroke="#38BDF8" strokeWidth="1" strokeDasharray="4,4" />
-                          <line x1="50" y1="175" x2="250" y2="60" stroke="#F59E0B" strokeWidth="2" />
-                          <line x1="450" y1="175" x2="250" y2="60" stroke="#F59E0B" strokeWidth="2" />
-                        </svg>
-                      </div>
-                    )}
-
-                    {/* IFC BIM Preview */}
-                    {selectedDoc.fileFormat === 'IFC' && (
-                      <div className="w-full bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-2 text-xs font-mono">
-                        <div className="flex items-center gap-2 text-indigo-400">
-                          <Box className="w-4 h-4" />
-                          <span className="font-bold">IFC BIM Model</span>
-                        </div>
-                        <p className="text-slate-300">Schema: {selectedDoc.ifcMetadata?.schema || 'IFC4'}</p>
-                        <p className="text-slate-400">Storeys: {selectedDoc.ifcMetadata?.storeys?.join(', ') || 'All Storeys'}</p>
-                      </div>
-                    )}
-
-                    {/* Unsupported Preview */}
-                    {selectedDoc.previewType === 'unsupported' && (
+                    ) : (
                       <div className="p-6 text-center text-slate-400 space-y-2">
-                        <EyeOff className="w-8 h-8 mx-auto text-slate-500" />
-                        <p className="font-bold text-white text-xs">PREVIEW NOT AVAILABLE</p>
-                        <p className="text-[11px] text-slate-400">
-                          File .{selectedDoc.fileExtension} is preserved for download.
-                        </p>
+                        <FileText className="w-10 h-10 mx-auto text-indigo-400 mb-1" />
+                        <p className="font-bold text-white text-xs">{selectedDoc.title}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{selectedDoc.sourceFileName}</p>
                       </div>
                     )}
                   </div>
 
-                  {/* Open Full Screen & Analyze Buttons */}
+                  {/* Bottom Action Bar */}
                   <div className="p-3 bg-slate-950 border-t border-slate-800 shrink-0 flex items-center gap-2">
                     <button
                       onClick={() => setIsFullScreenOpen(true)}
                       className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Maximize2 className="w-3.5 h-3.5" />
-                      <span>FULL SCREEN</span>
+                      <span>FULL VIEWER</span>
                     </button>
 
-                    {onOpenAnalysisWorkspace && (
-                      <button
-                        onClick={() => onOpenAnalysisWorkspace(selectedDoc.id)}
-                        className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>[ ANALYZE DRAWING ]</span>
-                      </button>
-                    )}
+                    <button
+                      onClick={() => {
+                        if (onOpenAnalysisWorkspace) {
+                          onOpenAnalysisWorkspace(selectedDoc.id);
+                        } else {
+                          setPhase18AnalysisDoc(selectedDoc);
+                        }
+                      }}
+                      className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>[ ANALYZE DRAWING ]</span>
+                    </button>
                   </div>
                 </div>
               )}
 
-              {/* TAB 2: EDITABLE METADATA FORM */}
+              {/* TAB 2: TRACEABILITY & LINKED DATA (Requirements 21, 22, 23, 24, 25) */}
+              {rightPanelTab === 'traceability' && (
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+                  <div className="border-b border-slate-200 pb-2">
+                    <h4 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                      <Link className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Traceability & Links</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Cross-module linking from {selectedDoc.id} to Elements, BOQ, and Calculations.
+                    </p>
+                  </div>
+
+                  {/* Linked Elements */}
+                  <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-slate-800 text-xs">Linked Elements ({selectedDoc.detectedElementsCount || 0})</strong>
+                      <span className="text-[10px] font-mono text-indigo-600 font-bold">Automatic Link</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Reinforced concrete columns, footings, and structural beams detected in this drawing.
+                    </p>
+                    <button
+                      onClick={() => setIsFullScreenOpen(true)}
+                      className="w-full py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-bold text-slate-800 transition-colors"
+                    >
+                      [ VIEW LINKED ELEMENTS ]
+                    </button>
+                  </div>
+
+                  {/* Linked BOQ Items */}
+                  <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-slate-800 text-xs">Linked BOQ Takeoffs</strong>
+                      <span className="text-[10px] font-mono text-emerald-600 font-bold">IS1200 / POMI</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Bill of Quantities line items referencing {selectedDoc.drawingNumber || selectedDoc.id} as source provenance.
+                    </p>
+                    <button
+                      onClick={() => setIsFullScreenOpen(true)}
+                      className="w-full py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-bold text-slate-800 transition-colors"
+                    >
+                      [ VIEW LINKED BOQ ]
+                    </button>
+                  </div>
+
+                  {/* Linked Calculations & Deductions */}
+                  <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-slate-800 text-xs">Linked Calculations & Audits</strong>
+                      <span className="text-[10px] font-mono text-blue-600 font-bold">100% Traceable</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Concrete volume arithmetic, deduction bounds, and rebar BBS formulas derived from this sheet.
+                    </p>
+                    <button
+                      onClick={() => setIsFullScreenOpen(true)}
+                      className="w-full py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-bold text-slate-800 transition-colors"
+                    >
+                      [ VIEW LINKED CALCULATIONS ]
+                    </button>
+                  </div>
+
+                  {/* BIM / IFC Integration */}
+                  <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-slate-800 text-xs">3D BIM Model Links</strong>
+                      <span className="text-[10px] font-mono text-teal-600 font-bold">IFC4 GUID</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Spatial floor association: {selectedDoc.level || 'Typical Floor'}.
+                    </p>
+                    <button
+                      onClick={() => setIsFullScreenOpen(true)}
+                      className="w-full py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-bold text-slate-800 transition-colors"
+                    >
+                      [ VIEW BIM ELEMENTS ]
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: EDITABLE METADATA FORM */}
               {rightPanelTab === 'metadata' && (
                 <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
                   {metaSaveSuccessToast && (
@@ -1353,7 +2134,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                   {/* Read-Only System Details */}
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg font-mono text-[11px] space-y-1 text-slate-600">
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Document ID:</span>
+                      <span className="text-slate-400">Drawing ID:</span>
                       <strong className="text-indigo-700">{selectedDoc.id}</strong>
                     </div>
                     <div className="flex justify-between">
@@ -1365,8 +2146,8 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                       <span>{Math.round(selectedDoc.fileSize / 1024)} KB</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Upload Date:</span>
-                      <span>{selectedDoc.uploadDate ? selectedDoc.uploadDate.split('T')[0] : '-'}</span>
+                      <span className="text-slate-400">Scale Ratio:</span>
+                      <span>{selectedDoc.scaleRatio || '1:100'}</span>
                     </div>
                   </div>
 
@@ -1417,7 +2198,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                     <div>
                       <label className="font-semibold text-slate-700 block mb-1">Document Type</label>
                       <select
-                        value={editingMetadata.documentType || 'Tender Drawing'}
+                        value={editingMetadata.documentType || 'Construction Drawing'}
                         onChange={(e) =>
                           setEditingMetadata({ ...editingMetadata, documentType: e.target.value as DocumentTypeOption })
                         }
@@ -1456,30 +2237,9 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                       type="text"
                       value={editingMetadata.level || ''}
                       onChange={(e) => setEditingMetadata({ ...editingMetadata, level: e.target.value })}
-                      placeholder="e.g. Foundation Level, Typical Office Floors"
+                      placeholder="e.g. Foundation Level, Typical Floor"
                       className="w-full bg-slate-50 border border-slate-300 rounded-md p-2 text-xs text-slate-800"
                     />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Prepared By</label>
-                      <input
-                        type="text"
-                        value={editingMetadata.preparedBy || ''}
-                        onChange={(e) => setEditingMetadata({ ...editingMetadata, preparedBy: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-md p-2 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Source / Consultant</label>
-                      <input
-                        type="text"
-                        value={editingMetadata.source || ''}
-                        onChange={(e) => setEditingMetadata({ ...editingMetadata, source: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-md p-2 text-xs"
-                      />
-                    </div>
                   </div>
 
                   <div>
@@ -1506,7 +2266,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                 </div>
               )}
 
-              {/* TAB 3: REVISION HISTORY STACK */}
+              {/* TAB 4: REVISION HISTORY */}
               {rightPanelTab === 'revisions' && (
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 text-xs">
                   <div>
@@ -1514,7 +2274,7 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                       Revision Series: <span className="font-mono text-indigo-700">{selectedDoc.drawingSeriesId || selectedDoc.drawingNumber || selectedDoc.id}</span>
                     </h4>
                     <p className="text-[11px] text-slate-500">
-                      All uploaded revisions remain permanently accessible. Switch the current active revision anytime.
+                      All uploaded revisions remain permanently accessible.
                     </p>
                   </div>
 
@@ -1574,38 +2334,169 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* TAB 5: NOTES & ANNOTATIONS */}
+              {rightPanelTab === 'notes' && (
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Drawing Notes & Clarifications</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Collaborative engineering notes associated with this drawing.
+                    </p>
+                  </div>
+
+                  {/* Add Note Input */}
+                  <div className="space-y-2">
+                    <textarea
+                      rows={2}
+                      value={newNoteText}
+                      onChange={(e) => setNewNoteText(e.target.value)}
+                      placeholder="Add an engineering note or site observation..."
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs focus:outline-hidden focus:border-indigo-500"
+                    />
+                    <button
+                      onClick={handleAddNote}
+                      disabled={!newNoteText.trim()}
+                      className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                    >
+                      + Add Note
+                    </button>
+                  </div>
+
+                  {/* Notes List */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    {selectedDoc.notesList && selectedDoc.notesList.length > 0 ? (
+                      selectedDoc.notesList.map((note) => (
+                        <div key={note.id} className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
+                          <div className="flex items-center justify-between text-[10px] text-slate-400">
+                            <span className="font-bold text-slate-700">{note.user}</span>
+                            <div className="flex items-center gap-2">
+                              <span>{note.timestamp ? note.timestamp.split('T')[0] : ''}</span>
+                              <button
+                                onClick={() => handleDeleteNote(note.id)}
+                                className="text-slate-400 hover:text-rose-600"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-800 leading-relaxed">{note.note}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-400 italic text-center py-4">
+                        No notes added to this drawing yet.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 space-y-2">
               <FolderOpen className="w-10 h-10 text-slate-300" />
               <p className="text-xs font-semibold text-slate-600">No Document Selected</p>
               <p className="text-[11px] text-slate-400">
-                Select a document from the register to preview and inspect metadata.
+                Select a drawing from the register to preview and inspect metadata.
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Upload Modal */}
-      <UploadDocumentModal
+      {/* Real Drawing Upload Center Modal */}
+      <DrawingUploadCenterModal
         projectId={projectId}
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
+        projectName={projectName}
+        activeProject={activeProject}
+        isOpen={isRealUploadCenterOpen}
+        onClose={() => setIsRealUploadCenterOpen(false)}
         onUploadSuccess={handleUploadSuccess}
-        onRevisionConflictDetected={handleRevisionConflictDetected}
       />
 
-      {/* Hand Sketch Upload Modal */}
-      <UploadDocumentModal
+      {/* Real Hand Sketch Upload Center Modal */}
+      <DrawingUploadCenterModal
         projectId={projectId}
-        isOpen={isHandSketchModalOpen}
-        onClose={() => setIsHandSketchModalOpen(false)}
+        projectName={projectName}
+        activeProject={activeProject}
+        isOpen={isRealHandSketchCenterOpen}
+        onClose={() => setIsRealHandSketchCenterOpen(false)}
         onUploadSuccess={handleUploadSuccess}
-        onRevisionConflictDetected={handleRevisionConflictDetected}
         initialDocumentType="Hand Sketch"
         isHandSketchMode={true}
       />
+
+      {/* Real Drawing Details & Inspector Modal */}
+      <DrawingDetailsModal
+        document={inspectingDoc}
+        project={activeProject || undefined}
+        isOpen={inspectingDoc !== null}
+        onClose={() => setInspectingDoc(null)}
+        onUpdateDocument={(updated) => {
+          setDocuments((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+          setInspectingDoc(updated);
+        }}
+      />
+
+      {/* Scale Calibration Modal */}
+      {calibratingDoc && (
+        <DrawingScaleCalibrationModal
+          doc={calibratingDoc}
+          onClose={() => setCalibratingDoc(null)}
+          onCalibrated={(updated) => {
+            setDocuments((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+            setCalibratingDoc(null);
+          }}
+        />
+      )}
+
+      {/* Revision Comparison Modal */}
+      {comparingDoc && (
+        <DrawingComparisonModal
+          currentDoc={comparingDoc}
+          allRevisions={documents.filter(
+            (d) => d.drawingSeriesId === (comparingDoc.drawingSeriesId || comparingDoc.drawingNumber)
+          )}
+          onClose={() => setComparingDoc(null)}
+        />
+      )}
+
+      {/* Phase 18A Real Drawing Analysis Modal */}
+      {phase18AnalysisDoc && (
+        <Phase18DrawingAnalysisModal
+          document={phase18AnalysisDoc}
+          project={activeProject || {
+            id: phase18AnalysisDoc.projectId || 'PRJ-DEFAULT',
+            name: 'Active Project',
+            description: '',
+            status: 'Active',
+            lastModified: new Date().toISOString(),
+            takeoffProgress: 0,
+            unresolvedClarifications: 0,
+            currency: 'AED',
+            unitSystem: 'Metric'
+          }}
+          isOpen={phase18AnalysisDoc !== null}
+          onClose={() => setPhase18AnalysisDoc(null)}
+          onAnalysisComplete={(updatedRecord) => {
+            setDocuments((prev) =>
+              prev.map((d) =>
+                d.id === updatedRecord.documentId
+                  ? {
+                      ...d,
+                      status: updatedRecord.status === 'ANALYZED' ? 'PROCESSED' : 'PROCESSING',
+                      detectedElementsCount: updatedRecord.elements.length,
+                      openItemsCount: updatedRecord.openItems.length
+                    }
+                  : d
+              )
+            );
+          }}
+        />
+      )}
 
       {/* Revision Conflict Warning Modal */}
       <RevisionWarningModal
@@ -1631,6 +2522,23 @@ export const DrawingManager: React.FC<DrawingManagerProps> = ({
         onConfirm={handleConfirmDeleteModal}
         onClose={() => setDeleteTargetDoc(null)}
       />
+
+      {/* Autonomous Real BOQ Generator Modal */}
+      {isBoqPipelineModalOpen && (
+        <DrawingToBoqAutoPipelineModal
+          isOpen={isBoqPipelineModalOpen}
+          onClose={() => {
+            setIsBoqPipelineModalOpen(false);
+            setBoqPipelineTargetDocs(undefined);
+          }}
+          project={activeProject || null}
+          documents={boqPipelineTargetDocs || (documents.length > 0 ? documents : undefined)}
+          onApplySuccess={() => {
+            setIsBoqPipelineModalOpen(false);
+            setBoqPipelineTargetDocs(undefined);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -18,9 +18,17 @@ const port = process.env.PORT || 3000;
 // Path to persistent projects database file
 const DATA_DIR = path.join(__dirname, 'data');
 const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
+const STATES_DIR = path.join(DATA_DIR, 'states');
+const VERSIONS_DIR = path.join(DATA_DIR, 'versions');
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+if (!fs.existsSync(STATES_DIR)) {
+  fs.mkdirSync(STATES_DIR, { recursive: true });
+}
+if (!fs.existsSync(VERSIONS_DIR)) {
+  fs.mkdirSync(VERSIONS_DIR, { recursive: true });
 }
 if (!fs.existsSync(PROJECTS_FILE)) {
   fs.writeFileSync(PROJECTS_FILE, JSON.stringify([], null, 2));
@@ -46,6 +54,48 @@ const writeProjectsToDisk = (projects: any[]): void => {
   }
 };
 
+const readProjectStateFromDisk = (projectId: string): any => {
+  try {
+    const filePath = path.join(STATES_DIR, `${projectId.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8') || '{}');
+    }
+  } catch (err) {
+    console.error('Error reading state:', err);
+  }
+  return null;
+};
+
+const writeProjectStateToDisk = (projectId: string, state: any): void => {
+  try {
+    const filePath = path.join(STATES_DIR, `${projectId.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing state:', err);
+  }
+};
+
+const readProjectVersionsFromDisk = (projectId: string): any[] => {
+  try {
+    const filePath = path.join(VERSIONS_DIR, `${projectId.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8') || '[]');
+    }
+  } catch (err) {
+    console.error('Error reading versions:', err);
+  }
+  return [];
+};
+
+const writeProjectVersionsToDisk = (projectId: string, versions: any[]): void => {
+  try {
+    const filePath = path.join(VERSIONS_DIR, `${projectId.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(versions, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing versions:', err);
+  }
+};
+
 // Shared GenAI client with required header
 const getGenAI = () => {
   return new GoogleGenAI({
@@ -67,6 +117,54 @@ app.get('/api/health', (req, res) => {
 app.get('/api/projects', (req, res) => {
   const projects = readProjectsFromDisk();
   res.json({ success: true, projects });
+});
+
+// Project State Endpoints
+app.get('/api/projects/:id/state', (req, res) => {
+  const { id } = req.params;
+  const state = readProjectStateFromDisk(id);
+  res.json({ success: true, state });
+});
+
+app.put('/api/projects/:id/state', (req, res) => {
+  try {
+    const { id } = req.params;
+    const stateData = req.body;
+    writeProjectStateToDisk(id, stateData);
+
+    const projects = readProjectsFromDisk();
+    const existingIndex = projects.findIndex((p) => p.id === id);
+    if (existingIndex >= 0) {
+      projects[existingIndex].updatedAt = new Date().toISOString();
+      writeProjectsToDisk(projects);
+    }
+
+    res.json({ success: true, state: stateData });
+  } catch (err: any) {
+    console.error('Error writing project state:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Project Versions Endpoints
+app.get('/api/projects/:id/versions', (req, res) => {
+  const { id } = req.params;
+  const versions = readProjectVersionsFromDisk(id);
+  res.json({ success: true, versions });
+});
+
+app.post('/api/projects/:id/versions', (req, res) => {
+  try {
+    const { id } = req.params;
+    const checkpoint = req.body;
+    const versions = readProjectVersionsFromDisk(id);
+    versions.push(checkpoint);
+    writeProjectVersionsToDisk(id, versions);
+    res.status(201).json({ success: true, checkpoint });
+  } catch (err: any) {
+    console.error('Error creating checkpoint:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.get('/api/projects/:id', (req, res) => {
@@ -168,60 +266,51 @@ app.delete('/api/projects/:id', (req, res) => {
 // AI Drawing Analyzer
 app.post('/api/analyze-drawing', async (req, res) => {
   try {
-    const { drawingMeta, imageBase64, textContent, discipline, level } = req.body;
+    const { drawingMeta, imageBase64, fileBase64, mimeType, textContent, discipline, level } = req.body;
     
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
-        error: 'GEMINI_API_KEY is not configured in server environment.',
+        error: 'GEMINI_API_KEY is not configured in server environment. Please set GEMINI_API_KEY in settings to run real Gemini document extraction.',
       });
     }
 
     const ai = getGenAI();
     
-    const prompt = `You are a Senior Quantity Surveying & Structural Engineering AI Assistant.
-Analyze this construction drawing / schedule / sketch for project discipline: ${discipline || 'General Structural/Architectural'}, Level: ${level || 'Typical'}.
+    const prompt = `You are a Senior Quantity Surveying, Structural & Architectural Engineering AI Extraction Engine.
+Analyze this construction drawing / CAD sheet / schedule / hand sketch for project discipline: ${discipline || 'General Structural/Architectural'}, Level: ${level || 'Typical'}.
 
 Drawing details:
 Number: ${drawingMeta?.drawingNumber || 'N/A'}
 Title: ${drawingMeta?.title || 'N/A'}
 Revision: ${drawingMeta?.revision || 'Rev 01'}
 
-CORE PRINCIPLES:
-1. KNOWN → CALCULATE / EXTRACT EXACT DIMENSIONS
-2. UNCLEAR → FLAG (create an open item)
-3. MISSING → ASK USER (create an open item)
-4. CONFLICTING → SHOW CONFLICT (create an open item)
-5. NEVER GUESS SILENTLY: If a slab thickness, beam depth, column size, or bar spacing is not explicitly specified or readable, DO NOT invent a number. Mark it as missing/unclear and provide an Open Item.
+CORE EXTRACTION PRINCIPLES (Phase 18A Real Drawing Analysis):
+1. KNOWN → EXTRACT EXACT EVIDENCE-SUPPORTED VALUES (with bounding box region x,y,width,height as 0-100% percentages)
+2. UNCLEAR → FLAG as "REVIEW REQUIRED" / Open Item
+3. MISSING → CREATE OPEN ITEM (Do NOT guess dimensions, slab thickness, column height, or bar diameters)
+4. CONFLICTING → CREATE CONFLICT ITEM (e.g. Plan vs Schedule size discrepancy)
+5. NEVER GUESS OR INVENT: Missing data must remain missing and be recorded as Open Item.
 
-Extract structured engineering elements and any open items.
-For elements, extract:
-- id (e.g. C1, B12, S-01, W-101, F1)
-- type ('column', 'beam', 'slab', 'footing', 'shear_wall', 'wall', 'door', 'window', 'steel_beam', 'purlin', 'duct', 'pipe')
-- dimensions: { length?: number (m), width?: number (m), depth?: number (m), height?: number (m), diameter?: number (mm), spacing?: number (mm), count: number }
-- location: description (e.g. "Grid A-C / 1-3")
-- material: (e.g. "C35/45 Concrete", "Fe500D Rebar", "200mm AAC Block", "UB 457x191x67")
-- confidence: score between 0.0 and 1.0
-- sourceDrawingLocation: string describing where on sheet this was found
-- boundingBox: { x: number (0-100), y: number (0-100), width: number, height: number } (percentage coordinates on drawing canvas)
-- notes: notes or specifications found
-
-For openItems, extract:
-- id: e.g. "OI-001"
-- category: "missing_dimension" | "unclear_text" | "conflicting_notes" | "missing_reinforcement" | "unspecified_grade"
-- title: concise title
-- description: clear explanation of what is missing or ambiguous
-- requiredInformation: exact prompt question to ask human engineer
-- suggestedAction: what estimator should verify
-- location: drawing location description
-- boundingBox: { x: number, y: number, width: number, height: number }`;
+Extract structured engineering data:
+- metadata: { drawingNumber, drawingTitle, revision, date, scale, projectName, consultant, sheetNumber }
+- pageClassification: 'PLAN' | 'ELEVATION' | 'SECTION' | 'DETAIL' | 'SCHEDULE' | 'GENERAL' | 'SPECIFICATION' | 'COVER' | 'UNKNOWN'
+- detectedDimensions: array of { rawText, numericValue, unit ('mm'|'m'|'cm'|'ft'|'inch'), isAmbiguous: boolean, boxX, boxY, boxW, boxH, confidence: 'HIGH'|'MEDIUM'|'LOW' }
+- detectedGrids: array of { label (e.g. 'A', 'B', '1', '2'), axis ('X'|'Y'), boxX, boxY, boxW, boxH }
+- detectedLevels: array of { name, elevationText (e.g. '+0.000', '+3.600'), datum ('FFL'|'SSL'|'TOS'|'TOC'|'GL'|'NGL'|'FGL'|'Roof Level'), boxX, boxY, boxW, boxH }
+- elements: array of { id, mark (e.g. 'C1','B1','W1','D1','S1','F1'), type ('Wall'|'Door'|'Window'|'Column'|'Beam'|'Slab'|'Footing'|'Foundation'|'Stair'|'RCC Wall'|'Steel Column'|'Steel Beam'|'Brace'|'Rafter'|'Purlin'|'Cladding'|'Pipe'|'Duct'), length, width, depth, height, thickness, count, location, gridLocation, material, confidence: 'HIGH'|'MEDIUM'|'LOW', boxX, boxY, boxW, boxH, notes }
+- openItems: array of { id, category ('MISSING_DIMENSION'|'UNREADABLE_TEXT'|'UNIT_AMBIGUITY'|'MISSING_THICKNESS'|'MISSING_HEIGHT'|'MISSING_SPECIFICATION'|'SCALE_UNAVAILABLE'), problem, requiredInformation, boxX, boxY, boxW, boxH }
+- detectedSchedules: array of { scheduleTitle, scheduleType, headers: string[], rowsCount: number, boxX, boxY, boxW, boxH }`;
 
     const contents: any[] = [];
-    if (imageBase64) {
-      // Clean base64 header if present
-      const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+    
+    // Support fileBase64 (PDF or images) or legacy imageBase64
+    const rawBase64 = fileBase64 || imageBase64;
+    if (rawBase64) {
+      const cleanBase64 = rawBase64.replace(/^data:[^;]+;base64,/, '');
+      const effectiveMime = mimeType || (rawBase64.startsWith('data:application/pdf') ? 'application/pdf' : 'image/png');
       contents.push({
         inlineData: {
-          mimeType: 'image/png',
+          mimeType: effectiveMime,
           data: cleanBase64,
         },
       });
@@ -242,14 +331,78 @@ For openItems, extract:
           type: Type.OBJECT,
           properties: {
             detectedDiscipline: { type: Type.STRING },
+            pageClassification: { type: Type.STRING },
             detectedScale: { type: Type.STRING },
             summary: { type: Type.STRING },
+            metadata: {
+              type: Type.OBJECT,
+              properties: {
+                drawingNumber: { type: Type.STRING },
+                drawingTitle: { type: Type.STRING },
+                revision: { type: Type.STRING },
+                date: { type: Type.STRING },
+                scale: { type: Type.STRING },
+                projectName: { type: Type.STRING },
+                consultant: { type: Type.STRING },
+                sheetNumber: { type: Type.STRING },
+              },
+            },
+            detectedDimensions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  rawText: { type: Type.STRING },
+                  numericValue: { type: Type.NUMBER },
+                  unit: { type: Type.STRING },
+                  isAmbiguous: { type: Type.BOOLEAN },
+                  confidence: { type: Type.STRING },
+                  boxX: { type: Type.NUMBER },
+                  boxY: { type: Type.NUMBER },
+                  boxW: { type: Type.NUMBER },
+                  boxH: { type: Type.NUMBER },
+                },
+                required: ['rawText', 'numericValue', 'unit'],
+              },
+            },
+            detectedGrids: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  label: { type: Type.STRING },
+                  axis: { type: Type.STRING },
+                  boxX: { type: Type.NUMBER },
+                  boxY: { type: Type.NUMBER },
+                  boxW: { type: Type.NUMBER },
+                  boxH: { type: Type.NUMBER },
+                },
+                required: ['label'],
+              },
+            },
+            detectedLevels: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  elevationText: { type: Type.STRING },
+                  datum: { type: Type.STRING },
+                  boxX: { type: Type.NUMBER },
+                  boxY: { type: Type.NUMBER },
+                  boxW: { type: Type.NUMBER },
+                  boxH: { type: Type.NUMBER },
+                },
+                required: ['name', 'elevationText'],
+              },
+            },
             elements: {
               type: Type.ARRAY,
               items: {
                 type: Type.OBJECT,
                 properties: {
                   id: { type: Type.STRING },
+                  mark: { type: Type.STRING },
                   type: { type: Type.STRING },
                   category: { type: Type.STRING },
                   name: { type: Type.STRING },
@@ -257,17 +410,20 @@ For openItems, extract:
                   width: { type: Type.NUMBER },
                   depth: { type: Type.NUMBER },
                   height: { type: Type.NUMBER },
+                  thickness: { type: Type.NUMBER },
                   count: { type: Type.INTEGER },
                   location: { type: Type.STRING },
+                  gridLocation: { type: Type.STRING },
                   material: { type: Type.STRING },
                   grade: { type: Type.STRING },
                   reinforcementDetail: { type: Type.STRING },
-                  confidence: { type: Type.NUMBER },
+                  confidence: { type: Type.STRING },
                   sourceLocation: { type: Type.STRING },
                   boxX: { type: Type.NUMBER },
                   boxY: { type: Type.NUMBER },
                   boxW: { type: Type.NUMBER },
                   boxH: { type: Type.NUMBER },
+                  notes: { type: Type.STRING },
                 },
                 required: ['id', 'type', 'count'],
               },
@@ -279,6 +435,7 @@ For openItems, extract:
                 properties: {
                   id: { type: Type.STRING },
                   category: { type: Type.STRING },
+                  problem: { type: Type.STRING },
                   title: { type: Type.STRING },
                   description: { type: Type.STRING },
                   requiredInformation: { type: Type.STRING },
@@ -289,7 +446,7 @@ For openItems, extract:
                   boxW: { type: Type.NUMBER },
                   boxH: { type: Type.NUMBER },
                 },
-                required: ['id', 'category', 'title', 'description', 'requiredInformation'],
+                required: ['id', 'category', 'problem', 'requiredInformation'],
               },
             },
             detectedSchedules: {
@@ -297,9 +454,14 @@ For openItems, extract:
               items: {
                 type: Type.OBJECT,
                 properties: {
-                  scheduleName: { type: Type.STRING },
-                  entriesCount: { type: Type.INTEGER },
+                  scheduleTitle: { type: Type.STRING },
+                  scheduleType: { type: Type.STRING },
+                  rowsCount: { type: Type.INTEGER },
                   notes: { type: Type.STRING },
+                  boxX: { type: Type.NUMBER },
+                  boxY: { type: Type.NUMBER },
+                  boxW: { type: Type.NUMBER },
+                  boxH: { type: Type.NUMBER },
                 },
               },
             },

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, 
   ZoomIn, 
@@ -18,10 +18,14 @@ import {
   EyeOff,
   Move,
   Info,
-  Scale
+  Scale,
+  ExternalLink,
+  Zap
 } from 'lucide-react';
 import { ProjectDocument } from '../types';
 import { DocumentStorageService } from '../services/documentStorage';
+import { AutoCAD2021Modal } from './AutoCAD2021Modal';
+import { AutoCAD2021IntegrationEngine } from '../engine/autocad2021IntegrationEngine';
 
 interface FullScreenViewerModalProps {
   document: ProjectDocument | null;
@@ -42,8 +46,54 @@ export const FullScreenViewerModal: React.FC<FullScreenViewerModalProps> = ({
   const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState<boolean>(false);
   const [panStart, setPanStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [isLoadingBlob, setIsLoadingBlob] = useState<boolean>(false);
+  const [isAutoCADModalOpen, setIsAutoCADModalOpen] = useState<boolean>(false);
+  const [showCadBigSuggestion, setShowCadBigSuggestion] = useState<boolean>(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen || !doc) {
+      setBlobUrl(null);
+      return;
+    }
+
+    setZoomLevel(100);
+    setRotation(0);
+    setCurrentPage(1);
+    setPanOffset({ x: 0, y: 0 });
+    setShowCadBigSuggestion(true);
+
+    let isMounted = true;
+    setIsLoadingBlob(true);
+
+    DocumentStorageService.getDocumentOriginalBlob(doc.id)
+      .then((blob) => {
+        if (!isMounted) return;
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          setBlobUrl(url);
+        } else if (doc.previewDataUrl) {
+          setBlobUrl(doc.previewDataUrl);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load drawing blob:', err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingBlob(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+      if (blobUrl && blobUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [isOpen, doc?.id]);
 
   if (!isOpen || !doc) return null;
 
@@ -59,7 +109,7 @@ export const FullScreenViewerModal: React.FC<FullScreenViewerModalProps> = ({
   const handleRotate = () => setRotation((prev) => (prev + 90) % 360);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button === 0) {
+    if (e.button === 0 && doc.fileFormat !== 'PDF') {
       setIsPanning(true);
       setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
     }
@@ -78,6 +128,12 @@ export const FullScreenViewerModal: React.FC<FullScreenViewerModalProps> = ({
 
   const handleDownload = () => {
     DocumentStorageService.downloadOriginalFile(doc);
+  };
+
+  const handleOpenInNewWindow = () => {
+    if (blobUrl) {
+      window.open(blobUrl, '_blank');
+    }
   };
 
   return (
@@ -199,6 +255,17 @@ export const FullScreenViewerModal: React.FC<FullScreenViewerModalProps> = ({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
+          {/* AutoCAD 2021 Direct Integration Action */}
+          <button
+            onClick={() => setIsAutoCADModalOpen(true)}
+            className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm border border-rose-500 transition-all cursor-pointer"
+            title="Open drawing in Autodesk AutoCAD 2021 (v24.0 / AC1032)"
+          >
+            <span className="w-4 h-4 rounded bg-white/20 flex items-center justify-center text-[10px] font-black">A</span>
+            <span className="hidden sm:inline">Open in</span>
+            <span>AutoCAD 2021</span>
+          </button>
+
           <button
             onClick={handleDownload}
             className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -232,6 +299,39 @@ export const FullScreenViewerModal: React.FC<FullScreenViewerModalProps> = ({
             : 'bg-slate-950'
         }`}
       >
+        {/* AutoCAD 2021 CAD Big Suggestion Banner */}
+        {showCadBigSuggestion && (
+          <div className="absolute top-4 z-40 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md border border-rose-500/60 rounded-xl px-4 py-2.5 shadow-2xl flex items-center gap-3 text-xs max-w-2xl animate-in slide-in-from-top duration-300">
+            <div className="w-7 h-7 rounded-lg bg-rose-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-md">
+              A
+            </div>
+            <div className="text-slate-200 flex-1">
+              <div className="font-bold text-white flex items-center gap-2">
+                <span>Large CAD Drawing View</span>
+                <span className="px-1.5 py-0.2 rounded bg-rose-500/30 text-rose-300 text-[10px] font-mono border border-rose-500/40 font-semibold">
+                  AC1032 Format
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                Suggested application for large CAD inspection: <strong className="text-rose-300">Autodesk AutoCAD 2021</strong>
+              </p>
+            </div>
+            <button
+              onClick={() => setIsAutoCADModalOpen(true)}
+              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs shrink-0"
+            >
+              <Zap className="w-3.5 h-3.5 text-rose-200" />
+              <span>Launch AutoCAD 2021</span>
+            </button>
+            <button
+              onClick={() => setShowCadBigSuggestion(false)}
+              className="p-1 text-slate-400 hover:text-white rounded transition-colors cursor-pointer shrink-0"
+              title="Dismiss suggestion"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         {/* Render PDF Preview */}
         {doc.fileFormat === 'PDF' && (
           <div
@@ -240,95 +340,36 @@ export const FullScreenViewerModal: React.FC<FullScreenViewerModalProps> = ({
               transformOrigin: 'center center',
               transition: isPanning ? 'none' : 'transform 0.1s ease-out',
             }}
-            className="w-full max-w-4xl h-full max-h-[85vh] bg-white rounded-lg shadow-2xl p-6 flex flex-col text-slate-900 overflow-hidden select-none border border-slate-700"
+            className="w-full max-w-5xl h-full max-h-[88vh] bg-white rounded-lg shadow-2xl p-2 flex flex-col text-slate-900 overflow-hidden border border-slate-700 relative"
           >
-            {/* Sheet Title Bar Header */}
-            <div className="flex justify-between items-start border-b-2 border-slate-900 pb-3 mb-4">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                  {doc.discipline} ENGINEERING DRAWING
-                </span>
-                <h1 className="text-lg font-black text-slate-900">{doc.title}</h1>
-                <p className="text-xs text-slate-600 font-mono">
-                  Scale: {doc.scaleRatio || '1:100'} • Level: {doc.level}
+            {isLoadingBlob ? (
+              <div className="flex-1 flex flex-col items-center justify-center bg-slate-900 text-slate-300 p-8">
+                <FileText className="w-12 h-12 text-indigo-400 animate-pulse mb-3" />
+                <p className="text-sm font-bold text-white">Loading Drawing PDF from Storage...</p>
+                <p className="text-xs text-slate-400 mt-1 font-mono">{doc.sourceFileName}</p>
+              </div>
+            ) : blobUrl ? (
+              <iframe
+                src={`${blobUrl}#toolbar=0&page=${currentPage}`}
+                title={doc.title || doc.sourceFileName}
+                className="w-full h-full rounded bg-white border-0 min-h-[650px]"
+              />
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center bg-slate-900 text-slate-300 p-8 text-center">
+                <FileText className="w-12 h-12 text-indigo-400 mb-3" />
+                <h3 className="text-base font-bold text-white mb-1">{doc.title || doc.sourceFileName}</h3>
+                <p className="text-xs text-slate-400 max-w-md mb-4">
+                  Original PDF is registered in project storage. You can inspect or download the original file.
                 </p>
+                <button
+                  onClick={handleDownload}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Original PDF</span>
+                </button>
               </div>
-              <div className="text-right font-mono">
-                <span className="text-sm font-black text-indigo-700 block">{doc.drawingNumber || doc.id}</span>
-                <span className="text-xs font-bold text-slate-800">{doc.revision}</span>
-              </div>
-            </div>
-
-            {/* Drawing Linework Representation */}
-            <div className="flex-1 border border-slate-300 rounded relative overflow-hidden bg-slate-50 flex items-center justify-center">
-              <svg viewBox="0 0 800 600" className="w-full h-full p-4 pointer-events-none">
-                {/* Structural Grid lines */}
-                <line x1="100" y1="50" x2="100" y2="550" stroke="#94A3B8" strokeWidth="1" strokeDasharray="6,4" />
-                <line x1="300" y1="50" x2="300" y2="550" stroke="#94A3B8" strokeWidth="1" strokeDasharray="6,4" />
-                <line x1="500" y1="50" x2="500" y2="550" stroke="#94A3B8" strokeWidth="1" strokeDasharray="6,4" />
-                <line x1="700" y1="50" x2="700" y2="550" stroke="#94A3B8" strokeWidth="1" strokeDasharray="6,4" />
-
-                <line x1="50" y1="100" x2="750" y2="100" stroke="#94A3B8" strokeWidth="1" strokeDasharray="6,4" />
-                <line x1="50" y1="300" x2="750" y2="300" stroke="#94A3B8" strokeWidth="1" strokeDasharray="6,4" />
-                <line x1="50" y1="500" x2="750" y2="500" stroke="#94A3B8" strokeWidth="1" strokeDasharray="6,4" />
-
-                {/* Grid Bubbles */}
-                <circle cx="100" cy="40" r="14" fill="#E2E8F0" stroke="#475569" strokeWidth="1.5" />
-                <text x="100" y="44" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#1E293B">A</text>
-                <circle cx="300" cy="40" r="14" fill="#E2E8F0" stroke="#475569" strokeWidth="1.5" />
-                <text x="300" y="44" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#1E293B">B</text>
-                <circle cx="500" cy="40" r="14" fill="#E2E8F0" stroke="#475569" strokeWidth="1.5" />
-                <text x="500" y="44" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#1E293B">C</text>
-                <circle cx="700" cy="40" r="14" fill="#E2E8F0" stroke="#475569" strokeWidth="1.5" />
-                <text x="700" y="44" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#1E293B">D</text>
-
-                <circle cx="40" cy="100" r="14" fill="#E2E8F0" stroke="#475569" strokeWidth="1.5" />
-                <text x="40" y="104" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#1E293B">1</text>
-                <circle cx="40" cy="300" r="14" fill="#E2E8F0" stroke="#475569" strokeWidth="1.5" />
-                <text x="40" y="304" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#1E293B">2</text>
-                <circle cx="40" cy="500" r="14" fill="#E2E8F0" stroke="#475569" strokeWidth="1.5" />
-                <text x="40" y="504" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#1E293B">3</text>
-
-                {/* Slabs & Framing */}
-                <rect x="100" y="100" width="600" height="400" fill="#F8FAFC" stroke="#0F172A" strokeWidth="2.5" />
-                <rect x="100" y="100" width="200" height="200" fill="none" stroke="#2563EB" strokeWidth="2" />
-                <rect x="300" y="100" width="200" height="200" fill="none" stroke="#2563EB" strokeWidth="2" />
-                <rect x="500" y="100" width="200" height="200" fill="none" stroke="#2563EB" strokeWidth="2" />
-                <rect x="100" y="300" width="200" height="200" fill="none" stroke="#2563EB" strokeWidth="2" />
-                <rect x="300" y="300" width="200" height="200" fill="none" stroke="#2563EB" strokeWidth="2" />
-                <rect x="500" y="300" width="200" height="200" fill="none" stroke="#2563EB" strokeWidth="2" />
-
-                {/* Columns */}
-                {[
-                  [100, 100], [300, 100], [500, 100], [700, 100],
-                  [100, 300], [300, 300], [500, 300], [700, 300],
-                  [100, 500], [300, 500], [500, 500], [700, 500],
-                ].map(([x, y], idx) => (
-                  <rect
-                    key={idx}
-                    x={x - 12}
-                    y={y - 12}
-                    width="24"
-                    height="24"
-                    fill="#1E293B"
-                    stroke="#0F172A"
-                  />
-                ))}
-
-                {/* Core Shear Wall */}
-                <rect x="375" y="275" width="50" height="50" fill="#475569" stroke="#0F172A" strokeWidth="2" />
-              </svg>
-            </div>
-
-            {/* Bottom Titleblock */}
-            <div className="border-t-2 border-slate-900 pt-2 mt-3 flex justify-between items-center text-[10px] text-slate-600">
-              <div>
-                <span>Source: {doc.source || 'Tender Package'}</span> • <span>Date: {doc.drawingDate}</span>
-              </div>
-              <div className="font-mono font-bold">
-                Sheet: {doc.drawingNumber || doc.id} | Rev: {doc.revision}
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -544,6 +585,15 @@ export const FullScreenViewerModal: React.FC<FullScreenViewerModalProps> = ({
           <span>Esc to Exit Full Screen</span>
         </div>
       </div>
+
+      {/* AutoCAD 2021 Integration Modal */}
+      {doc && (
+        <AutoCAD2021Modal
+          isOpen={isAutoCADModalOpen}
+          onClose={() => setIsAutoCADModalOpen(false)}
+          config={AutoCAD2021IntegrationEngine.fromProjectDocument(doc)}
+        />
+      )}
     </div>
   );
 };

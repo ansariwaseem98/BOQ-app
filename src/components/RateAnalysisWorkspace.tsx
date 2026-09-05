@@ -233,7 +233,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
       amount: 10.0,
       source: 'Rate Database',
       date: new Date().toISOString().split('T')[0],
-      currency: 'USD',
+      currency: 'AED',
     };
 
     handleUpdateCurrentRateAnalysis((prev) => ({
@@ -306,7 +306,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
       amount: tc.defaultConsumption * (1 + (tc.wastagePercent || 0) / 100) * tc.suggestedRate,
       source: 'Template Catalog',
       date: new Date().toISOString().split('T')[0],
-      currency: 'USD',
+      currency: 'AED',
     }));
 
     handleUpdateCurrentRateAnalysis((prev) => ({
@@ -484,7 +484,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
           <div>
             <span className="text-slate-400 text-[10px] uppercase font-bold block">Tender Bid Total:</span>
             <strong className="font-mono text-emerald-400 text-sm font-black">
-              ${tenderSummary.tenderGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              AED {tenderSummary.tenderGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </strong>
           </div>
         </div>
@@ -645,7 +645,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                     <div className="text-right">
                       <span className="text-[10px] text-slate-400 block uppercase">Unit Rate:</span>
                       <strong className="font-mono text-indigo-700 font-bold">
-                        ${finalRate.toFixed(2)}
+                        AED {finalRate.toFixed(2)}
                       </strong>
                     </div>
                   </div>
@@ -653,7 +653,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                   <div className="flex justify-between items-center mt-2 pt-1 border-t border-slate-100/60 text-[11px]">
                     <span className="text-slate-500">BOQ Amount:</span>
                     <strong className="font-mono text-slate-900 font-bold">
-                      ${boqAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      AED {boqAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </strong>
                   </div>
                 </div>
@@ -840,7 +840,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                         </div>
 
                         <div>
-                          <span className="text-[9px] text-slate-400 block uppercase">Rate ($)</span>
+                          <span className="text-[9px] text-slate-400 block uppercase">Rate (AED)</span>
                           <input
                             type="number"
                             step="0.01"
@@ -866,7 +866,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                       <div className="w-24 text-right shrink-0">
                         <span className="text-[9px] text-slate-400 block uppercase">Amount</span>
                         <strong className="font-mono text-emerald-700 font-black text-sm">
-                          ${comp.amount.toFixed(2)}
+                          AED {comp.amount.toFixed(2)}
                         </strong>
                       </div>
 
@@ -934,21 +934,21 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                   {bottomTab === 'FORMULA' && (
                     <div className="space-y-1 font-mono text-[11px] text-slate-800">
                       <div>
-                        1. Direct Cost = Material (${selectedRateAnalysis.materialCost.toFixed(2)}) + Labour (${selectedRateAnalysis.labourCost.toFixed(2)}) + Equip (${selectedRateAnalysis.equipmentCost.toFixed(2)}) + Sub (${selectedRateAnalysis.subcontractCost.toFixed(2)}) + Trn (${selectedRateAnalysis.transportCost.toFixed(2)}) = <strong>${selectedRateAnalysis.directCost.toFixed(2)}</strong>
+                        1. Direct Cost = Material (AED {selectedRateAnalysis.materialCost.toFixed(2)}) + Labour (AED {selectedRateAnalysis.labourCost.toFixed(2)}) + Equip (AED {selectedRateAnalysis.equipmentCost.toFixed(2)}) + Sub (AED {selectedRateAnalysis.subcontractCost.toFixed(2)}) + Trn (AED {selectedRateAnalysis.transportCost.toFixed(2)}) = <strong>AED {selectedRateAnalysis.directCost.toFixed(2)}</strong>
                       </div>
                       <div>
-                        2. Overhead (${selectedRateAnalysis.overheadPercent}%) = ${selectedRateAnalysis.directCost.toFixed(2)} × {selectedRateAnalysis.overheadPercent}% = <strong>${selectedRateAnalysis.overheadAmount.toFixed(2)}</strong>
+                        2. Overhead ({selectedRateAnalysis.overheadPercent}%) = AED {selectedRateAnalysis.directCost.toFixed(2)} × {selectedRateAnalysis.overheadPercent}% = <strong>AED {selectedRateAnalysis.overheadAmount.toFixed(2)}</strong>
                       </div>
                       <div>
-                        3. Profit (${selectedRateAnalysis.profitPercent}%) = (${selectedRateAnalysis.directCost.toFixed(2)} + ${selectedRateAnalysis.overheadAmount.toFixed(2)}) × {selectedRateAnalysis.profitPercent}% = <strong>${selectedRateAnalysis.profitAmount.toFixed(2)}</strong>
+                        3. Profit ({selectedRateAnalysis.profitPercent}%) = (AED {selectedRateAnalysis.directCost.toFixed(2)} + AED {selectedRateAnalysis.overheadAmount.toFixed(2)}) × {selectedRateAnalysis.profitPercent}% = <strong>AED {selectedRateAnalysis.profitAmount.toFixed(2)}</strong>
                       </div>
                       {selectedRateAnalysis.taxEnabled && (
                         <div>
-                          4. Tax / VAT (${selectedRateAnalysis.taxRatePercent}%) = (${(selectedRateAnalysis.directCost + selectedRateAnalysis.overheadAmount + selectedRateAnalysis.profitAmount).toFixed(2)}) × {selectedRateAnalysis.taxRatePercent}% = <strong>${selectedRateAnalysis.taxAmount.toFixed(2)}</strong>
+                          4. Tax / VAT ({selectedRateAnalysis.taxRatePercent}%) = (AED {(selectedRateAnalysis.directCost + selectedRateAnalysis.overheadAmount + selectedRateAnalysis.profitAmount).toFixed(2)}) × {selectedRateAnalysis.taxRatePercent}% = <strong>AED {selectedRateAnalysis.taxAmount.toFixed(2)}</strong>
                         </div>
                       )}
                       <div className="pt-1 text-slate-900 font-bold border-t border-slate-200">
-                        Final Unit Rate = Direct + OH + Profit + Tax = <strong>${selectedRateAnalysis.finalRate.toFixed(2)} / {selectedRateAnalysis.rateUnit}</strong>
+                        Final Unit Rate = Direct + OH + Profit + Tax = <strong>AED {selectedRateAnalysis.finalRate.toFixed(2)} / {selectedRateAnalysis.rateUnit}</strong>
                       </div>
                     </div>
                   )}
@@ -994,7 +994,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                       {selectedRateAnalysis.isUserOverridden ? (
                         <div className="flex items-center justify-between bg-amber-50 p-2 rounded-lg border border-amber-200">
                           <div>
-                            <span className="font-bold text-amber-900">Active Manual Rate Override: ${selectedRateAnalysis.finalRate.toFixed(2)}</span>
+                            <span className="font-bold text-amber-900">Active Manual Rate Override: AED {selectedRateAnalysis.finalRate.toFixed(2)}</span>
                             <p className="text-amber-800 text-[11px]">Justification: {selectedRateAnalysis.overrideReason}</p>
                           </div>
                           <button
@@ -1009,7 +1009,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                           <input
                             type="number"
                             step="0.01"
-                            placeholder="New override rate ($)..."
+                            placeholder="New override rate (AED)..."
                             value={overrideInputRate}
                             onChange={(e) => setOverrideInputRate(e.target.value)}
                             className="w-36 px-2.5 py-1 text-xs bg-white border border-slate-200 rounded font-mono font-bold"
@@ -1055,27 +1055,27 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
               <div className="bg-slate-50 rounded-xl p-3 space-y-1.5 border border-slate-100 text-xs font-medium">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Material Cost:</span>
-                  <span className="font-mono text-slate-800">${selectedRateAnalysis.materialCost.toFixed(2)}</span>
+                  <span className="font-mono text-slate-800">AED {selectedRateAnalysis.materialCost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Labour Cost:</span>
-                  <span className="font-mono text-slate-800">${selectedRateAnalysis.labourCost.toFixed(2)}</span>
+                  <span className="font-mono text-slate-800">AED {selectedRateAnalysis.labourCost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Equipment Cost:</span>
-                  <span className="font-mono text-slate-800">${selectedRateAnalysis.equipmentCost.toFixed(2)}</span>
+                  <span className="font-mono text-slate-800">AED {selectedRateAnalysis.equipmentCost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Subcontract:</span>
-                  <span className="font-mono text-slate-800">${selectedRateAnalysis.subcontractCost.toFixed(2)}</span>
+                  <span className="font-mono text-slate-800">AED {selectedRateAnalysis.subcontractCost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Transport:</span>
-                  <span className="font-mono text-slate-800">${selectedRateAnalysis.transportCost.toFixed(2)}</span>
+                  <span className="font-mono text-slate-800">AED {selectedRateAnalysis.transportCost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between pt-1.5 border-t border-slate-200 font-bold">
                   <span className="text-slate-900">Total Direct Cost:</span>
-                  <span className="font-mono text-slate-900 font-black">${selectedRateAnalysis.directCost.toFixed(2)}</span>
+                  <span className="font-mono text-slate-900 font-black">AED {selectedRateAnalysis.directCost.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -1085,7 +1085,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                 <div className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-slate-700">Overhead Markup</span>
-                    <span className="font-mono text-slate-900 font-bold">+${selectedRateAnalysis.overheadAmount.toFixed(2)}</span>
+                    <span className="font-mono text-slate-900 font-bold">+AED {selectedRateAnalysis.overheadAmount.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -1109,7 +1109,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                 <div className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-slate-700">Profit Margin</span>
-                    <span className="font-mono text-emerald-700 font-bold">+${selectedRateAnalysis.profitAmount.toFixed(2)}</span>
+                    <span className="font-mono text-emerald-700 font-bold">+AED {selectedRateAnalysis.profitAmount.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -1147,7 +1147,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                       <span className="font-bold text-slate-700">Tax / VAT</span>
                     </label>
                     <span className="font-mono text-slate-700">
-                      {selectedRateAnalysis.taxEnabled ? `+$${selectedRateAnalysis.taxAmount.toFixed(2)}` : 'Exempt'}
+                      {selectedRateAnalysis.taxEnabled ? `+AED ${selectedRateAnalysis.taxAmount.toFixed(2)}` : 'Exempt'}
                     </span>
                   </div>
                   {selectedRateAnalysis.taxEnabled && (
@@ -1177,7 +1177,7 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                   FINAL UNIT RATE PER {selectedRateAnalysis.rateUnit}
                 </span>
                 <div className="text-2xl font-black font-mono text-emerald-400">
-                  ${selectedRateAnalysis.finalRate.toFixed(2)}
+                  AED {selectedRateAnalysis.finalRate.toFixed(2)}
                 </div>
                 <div className="text-[10px] text-slate-400 mt-1">
                   All direct costs + markups + tax
@@ -1190,10 +1190,10 @@ export const RateAnalysisWorkspace: React.FC<RateAnalysisWorkspaceProps> = ({
                   Item BOQ Amount (Qty × Rate)
                 </span>
                 <div className="text-lg font-black font-mono text-emerald-950">
-                  ${(selectedBoq.finalQuantity * selectedRateAnalysis.finalRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  AED {(selectedBoq.finalQuantity * selectedRateAnalysis.finalRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div className="text-[11px] text-emerald-700 mt-0.5">
-                  Formula: {selectedBoq.finalQuantity} {selectedBoq.unit} × ${selectedRateAnalysis.finalRate.toFixed(2)}
+                  Formula: {selectedBoq.finalQuantity} {selectedBoq.unit} × AED {selectedRateAnalysis.finalRate.toFixed(2)}
                 </div>
               </div>
             </div>

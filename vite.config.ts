@@ -11,8 +11,17 @@ dotenv.config();
 const DATA_DIR = path.resolve(__dirname, 'data');
 const PROJECTS_FILE = path.resolve(DATA_DIR, 'projects.json');
 
+const STATES_DIR = path.resolve(DATA_DIR, 'states');
+const VERSIONS_DIR = path.resolve(DATA_DIR, 'versions');
+
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+if (!fs.existsSync(STATES_DIR)) {
+  fs.mkdirSync(STATES_DIR, { recursive: true });
+}
+if (!fs.existsSync(VERSIONS_DIR)) {
+  fs.mkdirSync(VERSIONS_DIR, { recursive: true });
 }
 if (!fs.existsSync(PROJECTS_FILE)) {
   fs.writeFileSync(PROJECTS_FILE, JSON.stringify([], null, 2));
@@ -35,6 +44,48 @@ const writeProjectsToDisk = (projects: any[]): void => {
     fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2), 'utf-8');
   } catch (err) {
     console.error('Error writing projects.json:', err);
+  }
+};
+
+const readProjectStateFromDisk = (projectId: string): any => {
+  try {
+    const filePath = path.resolve(STATES_DIR, `${projectId.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8') || '{}');
+    }
+  } catch (err) {
+    console.error('Error reading state:', err);
+  }
+  return null;
+};
+
+const writeProjectStateToDisk = (projectId: string, state: any): void => {
+  try {
+    const filePath = path.resolve(STATES_DIR, `${projectId.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing state:', err);
+  }
+};
+
+const readProjectVersionsFromDisk = (projectId: string): any[] => {
+  try {
+    const filePath = path.resolve(VERSIONS_DIR, `${projectId.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8') || '[]');
+    }
+  } catch (err) {
+    console.error('Error reading versions:', err);
+  }
+  return [];
+};
+
+const writeProjectVersionsToDisk = (projectId: string, versions: any[]): void => {
+  try {
+    const filePath = path.resolve(VERSIONS_DIR, `${projectId.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(versions, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing versions:', err);
   }
 };
 
@@ -122,6 +173,53 @@ function apiDevPlugin(): Plugin {
             return sendJson(201, { success: true, project: newProject });
           } catch (err: any) {
             return sendJson(500, { success: false, error: err.message });
+          }
+        }
+
+        // --- Project State API routes ---
+        const stateMatch = urlWithoutQuery.match(/^\/api\/projects\/([^/]+)\/state$/);
+        if (stateMatch) {
+          const projectId = decodeURIComponent(stateMatch[1]);
+          if (req.method === 'GET') {
+            const state = readProjectStateFromDisk(projectId);
+            return sendJson(200, { success: true, state });
+          }
+          if (req.method === 'PUT') {
+            try {
+              const body = await getBody();
+              writeProjectStateToDisk(projectId, body);
+              // Also update projects.json timestamp
+              const projects = readProjectsFromDisk();
+              const pIdx = projects.findIndex((p: any) => p.id === projectId);
+              if (pIdx >= 0) {
+                projects[pIdx].updatedAt = new Date().toISOString();
+                writeProjectsToDisk(projects);
+              }
+              return sendJson(200, { success: true, state: body });
+            } catch (err: any) {
+              return sendJson(500, { success: false, error: err.message });
+            }
+          }
+        }
+
+        // --- Project Versions API routes ---
+        const versionsMatch = urlWithoutQuery.match(/^\/api\/projects\/([^/]+)\/versions$/);
+        if (versionsMatch) {
+          const projectId = decodeURIComponent(versionsMatch[1]);
+          if (req.method === 'GET') {
+            const versions = readProjectVersionsFromDisk(projectId);
+            return sendJson(200, { success: true, versions });
+          }
+          if (req.method === 'POST') {
+            try {
+              const body = await getBody();
+              const versions = readProjectVersionsFromDisk(projectId);
+              versions.push(body);
+              writeProjectVersionsToDisk(projectId, versions);
+              return sendJson(201, { success: true, checkpoint: body });
+            } catch (err: any) {
+              return sendJson(500, { success: false, error: err.message });
+            }
           }
         }
 

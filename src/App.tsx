@@ -21,12 +21,22 @@ import {
   SAMPLE_TEST_REVISIONS 
 } from './data/initialData';
 import { ProjectApiService } from './services/projectApi';
+import { ProjectPersistenceService } from './services/projectPersistenceService';
 import { recalculateElementDependencies } from './engine/dependencyEngine';
 import { validateProjectDataset } from './engine/validationEngine';
 import { TopBar, ActiveTab } from './components/TopBar';
+import { GlobalNavigationBar } from './components/GlobalNavigationBar';
+import { GlobalSidebar } from './components/GlobalSidebar';
+import { UnsavedChangesModal } from './components/UnsavedChangesModal';
+import { ReportsWorkspace } from './components/ReportsWorkspace';
+import { SettingsWorkspace } from './components/SettingsWorkspace';
+import { ActiveNavTab, BreadcrumbItem } from './types/navigation';
 import { ProjectDashboard } from './components/ProjectDashboard';
 import { ProjectList } from './components/ProjectList';
 import { ProjectSetupModal } from './components/ProjectSetupModal';
+import { ProjectVersionModal } from './components/ProjectVersionModal';
+import { ProjectBackupModal } from './components/ProjectBackupModal';
+import { ProjectDuplicateModal } from './components/ProjectDuplicateModal';
 import { WorkspaceLayout } from './components/WorkspaceLayout';
 import { DrawingManager } from './components/DrawingManager';
 import { BoqTable } from './components/BoqTable';
@@ -59,6 +69,8 @@ import { EndToEndTestModal } from './components/EndToEndTestModal';
 import { TakeoffErrorReportModal } from './components/TakeoffErrorReportModal';
 import { ExportCenterModal } from './components/ExportCenterModal';
 import { ExportTestSuiteModal } from './components/ExportTestSuiteModal';
+import { Phase16MasterIntegrationModal } from './components/Phase16MasterIntegrationModal';
+import { Phase17DrawingIntakeCenter } from './components/Phase17DrawingIntakeCenter';
 import { INITIAL_UNIFIED_BOQ_ITEMS } from './data/unifiedBoqInitialData';
 
 export function App() {
@@ -70,7 +82,128 @@ export function App() {
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
 
   // App navigation
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<ActiveNavTab>('dashboard');
+  const [navHistory, setNavHistory] = useState<ActiveNavTab[]>(['dashboard']);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [pendingNavTab, setPendingNavTab] = useState<ActiveNavTab | null>(null);
+  const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
+
+  // Navigation handlers with history tracking & unsaved changes guard
+  const handleNavigate = (targetTab: ActiveNavTab) => {
+    if (targetTab === activeTab) return;
+    if (hasUnsavedChanges) {
+      setPendingNavTab(targetTab);
+      setIsUnsavedModalOpen(true);
+      return;
+    }
+    setNavHistory((prev) => [...prev, targetTab]);
+    setActiveTab(targetTab);
+    setIsSidebarOpen(false); // Close mobile drawer if open
+  };
+
+  const handleGoBack = () => {
+    if (hasUnsavedChanges) {
+      setIsUnsavedModalOpen(true);
+      return;
+    }
+    if (navHistory.length > 1) {
+      const updated = [...navHistory];
+      updated.pop(); // Remove current screen
+      const previous = updated[updated.length - 1];
+      setNavHistory(updated);
+      setActiveTab(previous);
+    } else {
+      setActiveTab('dashboard');
+    }
+  };
+
+  const handleGoHome = () => {
+    if (hasUnsavedChanges) {
+      setPendingNavTab('dashboard');
+      setIsUnsavedModalOpen(true);
+      return;
+    }
+    if (activeTab !== 'dashboard') {
+      setNavHistory((prev) => [...prev, 'dashboard']);
+      setActiveTab('dashboard');
+    }
+  };
+
+  const handleConfirmLeave = () => {
+    setHasUnsavedChanges(false);
+    setIsUnsavedModalOpen(false);
+    if (pendingNavTab) {
+      setNavHistory((prev) => [...prev, pendingNavTab]);
+      setActiveTab(pendingNavTab);
+      setPendingNavTab(null);
+    } else if (navHistory.length > 1) {
+      const updated = [...navHistory];
+      updated.pop();
+      const previous = updated[updated.length - 1];
+      setNavHistory(updated);
+      setActiveTab(previous);
+    }
+  };
+
+  const handleCancelLeave = () => {
+    setIsUnsavedModalOpen(false);
+    setPendingNavTab(null);
+  };
+
+  // Build breadcrumb items based on current context
+  const getBreadcrumbs = (): BreadcrumbItem[] => {
+    const items: BreadcrumbItem[] = [
+      {
+        id: 'crumb-home',
+        label: 'Home',
+        onClick: activeTab !== 'dashboard' ? handleGoHome : undefined,
+      },
+    ];
+
+    if (activeProject) {
+      items.push({
+        id: 'crumb-project',
+        label: activeProject.project?.name || activeProject.id,
+        onClick: activeTab !== 'dashboard' ? handleGoHome : undefined,
+      });
+    }
+
+    const tabLabels: Record<string, string> = {
+      'dashboard': 'Overview',
+      'projects-list': 'Projects Directory',
+      'drawings': 'Drawings Register',
+      'intelligence': 'AI Drawing Intelligence',
+      'takeoff': 'Takeoff Engine',
+      'measurement-engine': 'Calculations & Measurement',
+      'workspace': 'RCC Takeoff Canvas',
+      'steel': 'Structural Steel Takeoff',
+      'roofing': 'Roofing & Sheeting Takeoff',
+      'architectural': 'Architectural & Finishes',
+      'mep': 'MEP Takeoff Suites',
+      'bbs': 'RCC & BBS Rebar Schedule',
+      'boq': 'Unified BOQ Schedule',
+      'rate-analysis': 'Rate Analysis & Pricing',
+      'tender': 'Tender Management Package',
+      'open-items': 'Open Items & Clarifications',
+      'conflicts': 'Drawing Conflicts Log',
+      'revisions': 'Revision History & Addenda',
+      'reports': 'Reports Center',
+      'exports': 'Exports Center',
+      'settings': 'Project & Engineering Settings',
+    };
+
+    if (activeTab !== 'dashboard') {
+      items.push({
+        id: `crumb-${activeTab}`,
+        label: tabLabels[activeTab] || activeTab,
+        isCurrent: true,
+      });
+    }
+
+    return items;
+  };
 
   // Drawing & Takeoff data (empty for new projects)
   const [drawings, setDrawings] = useState<DrawingRecord[]>([]);
@@ -106,6 +239,74 @@ export function App() {
   const [isExportCenterOpen, setIsExportCenterOpen] = useState(false);
   const [isExportTestOpen, setIsExportTestOpen] = useState(false);
 
+  // Phase 16 Master Integration Modal
+  const [isPhase16ModalOpen, setIsPhase16ModalOpen] = useState(false);
+
+  // Phase 17A Real Drawing Intake & Processing Modal
+  const [isPhase17ModalOpen, setIsPhase17ModalOpen] = useState(false);
+
+  // Persistence & Versioning State
+  const [saveStatus, setSaveStatus] = useState<'SAVED' | 'SAVING' | 'FAILED' | 'OFFLINE'>('SAVED');
+  const [lastSavedTime, setLastSavedTime] = useState<string | undefined>(undefined);
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string | undefined>(undefined);
+  const [isHydratingState, setIsHydratingState] = useState<boolean>(false);
+  const [isVersionsModalOpen, setIsVersionsModalOpen] = useState<boolean>(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState<boolean>(false);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState<boolean>(false);
+  const [selectedVersionProjectId, setSelectedVersionProjectId] = useState<string | undefined>(undefined);
+  const [projectToDuplicate, setProjectToDuplicate] = useState<ProjectRecord | null>(null);
+
+  // Full Project State Rehydration Function
+  const rehydrateProjectState = async (project: ProjectRecord) => {
+    setIsHydratingState(true);
+    setSaveStatus('SAVING');
+    try {
+      const persistedState = await ProjectPersistenceService.getProjectState(project.id);
+      if (persistedState) {
+        setDrawings(persistedState.drawings || []);
+        setElements(persistedState.elements || []);
+        setBoqItems(persistedState.boqItems || []);
+        setBbsRecords(persistedState.bbsRecords || []);
+        setOpenItems(persistedState.openItems || []);
+        setConflicts(persistedState.conflicts || []);
+        setRevisions(persistedState.revisions || []);
+        setActiveDrawingId(persistedState.drawings?.[0]?.id || null);
+        setSelectedElementId(persistedState.elements?.[0]?.id || null);
+      } else if (project.isTestProject) {
+        // Fallback for sample test project
+        setDrawings(SAMPLE_TEST_DRAWINGS);
+        setElements(SAMPLE_TEST_ELEMENTS);
+        setBoqItems(SAMPLE_TEST_BOQ_ITEMS);
+        setBbsRecords(SAMPLE_TEST_BBS_RECORDS);
+        setOpenItems(SAMPLE_TEST_OPEN_ITEMS);
+        setConflicts(SAMPLE_TEST_CONFLICTS);
+        setRevisions(SAMPLE_TEST_REVISIONS);
+        setActiveDrawingId(SAMPLE_TEST_DRAWINGS[0]?.id || null);
+        setSelectedElementId(SAMPLE_TEST_ELEMENTS[0]?.id || null);
+      } else {
+        // Fresh brand new project - strictly clean state
+        setDrawings([]);
+        setElements([]);
+        setBoqItems([]);
+        setBbsRecords([]);
+        setOpenItems([]);
+        setConflicts([]);
+        setRevisions([]);
+        setActiveDrawingId(null);
+        setSelectedElementId(null);
+      }
+      setSaveStatus('SAVED');
+      setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setSaveErrorMessage(undefined);
+    } catch (err: any) {
+      console.error('Failed to rehydrate project state:', err);
+      setSaveStatus('FAILED');
+      setSaveErrorMessage(err.message || 'Failed to load project records');
+    } finally {
+      setIsHydratingState(false);
+    }
+  };
+
   // Load all projects on initial mount from persistent storage
   useEffect(() => {
     async function loadProjects() {
@@ -115,17 +316,22 @@ export function App() {
         setProjects(list);
 
         const storedActiveId = ProjectApiService.getActiveProjectId();
+        let targetProject: ProjectRecord | null = null;
         if (storedActiveId) {
           const match = list.find((p) => p.id === storedActiveId);
           if (match) {
-            setActiveProject(match);
+            targetProject = match;
           } else if (list.length > 0) {
-            setActiveProject(list[0]);
-            ProjectApiService.setActiveProjectId(list[0].id);
+            targetProject = list[0];
           }
         } else if (list.length > 0) {
-          setActiveProject(list[0]);
-          ProjectApiService.setActiveProjectId(list[0].id);
+          targetProject = list[0];
+        }
+
+        if (targetProject) {
+          setActiveProject(targetProject);
+          ProjectApiService.setActiveProjectId(targetProject.id);
+          await rehydrateProjectState(targetProject);
         }
       } catch (err) {
         console.error('Failed to load projects:', err);
@@ -135,6 +341,59 @@ export function App() {
     }
     loadProjects();
   }, []);
+
+  // Continuous Auto-Save Engine with Debouncing
+  useEffect(() => {
+    if (!activeProject?.id || isHydratingState || isLoadingProjects) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSaveStatus('SAVING');
+      try {
+        const currentState = {
+          projectId: activeProject.id,
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          drawings,
+          elements,
+          boqItems,
+          bbsRecords,
+          openItems,
+          conflicts,
+          revisions,
+        };
+
+        const result = await ProjectPersistenceService.saveProjectState(activeProject.id, currentState, false);
+
+        if (result.success) {
+          setSaveStatus('SAVED');
+          setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          setSaveErrorMessage(undefined);
+        } else {
+          setSaveStatus('FAILED');
+          setSaveErrorMessage(result.error || 'Failed to save project records');
+        }
+      } catch (err: any) {
+        console.error('Auto-save failed:', err);
+        setSaveStatus('FAILED');
+        setSaveErrorMessage(err.message || 'Auto-save failed');
+      }
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [
+    activeProject?.id,
+    drawings,
+    elements,
+    boqItems,
+    bbsRecords,
+    openItems,
+    conflicts,
+    revisions,
+    isHydratingState,
+    isLoadingProjects,
+  ]);
 
   // Load project documents when active project changes
   useEffect(() => {
@@ -157,35 +416,145 @@ export function App() {
   const validationIssues = validateProjectDataset(elements, boqItems, bbsRecords, drawings);
 
   // Select project
-  const handleSelectProject = (projectId: string) => {
+  const handleSelectProject = async (projectId: string) => {
     const target = projects.find((p) => p.id === projectId);
     if (target) {
       setActiveProject(target);
       ProjectApiService.setActiveProjectId(target.id);
       setActiveTab('dashboard');
+      await rehydrateProjectState(target);
+    }
+  };
 
-      if (target.isTestProject) {
-        setDrawings(SAMPLE_TEST_DRAWINGS);
-        setElements(SAMPLE_TEST_ELEMENTS);
-        setBoqItems(SAMPLE_TEST_BOQ_ITEMS);
-        setBbsRecords(SAMPLE_TEST_BBS_RECORDS);
-        setOpenItems(SAMPLE_TEST_OPEN_ITEMS);
-        setConflicts(SAMPLE_TEST_CONFLICTS);
-        setRevisions(SAMPLE_TEST_REVISIONS);
-        setActiveDrawingId(SAMPLE_TEST_DRAWINGS[0]?.id || null);
-        setSelectedElementId(SAMPLE_TEST_ELEMENTS[0]?.id || null);
+  // Manual Force Save Handler
+  const handleManualSave = async () => {
+    if (!activeProject?.id) return;
+    setSaveStatus('SAVING');
+    try {
+      const currentState = {
+        projectId: activeProject.id,
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        drawings,
+        elements,
+        boqItems,
+        bbsRecords,
+        openItems,
+        conflicts,
+        revisions,
+      };
+
+      const result = await ProjectPersistenceService.saveProjectState(
+        activeProject.id,
+        currentState,
+        true,
+        `Manual Checkpoint (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
+      );
+
+      if (result.success) {
+        setSaveStatus('SAVED');
+        setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        setSaveErrorMessage(undefined);
       } else {
-        // Fresh project - strictly 0 items
-        setDrawings([]);
-        setElements([]);
-        setBoqItems([]);
-        setBbsRecords([]);
-        setOpenItems([]);
-        setConflicts([]);
-        setRevisions([]);
-        setActiveDrawingId(null);
-        setSelectedElementId(null);
+        setSaveStatus('FAILED');
+        setSaveErrorMessage(result.error || 'Manual save failed');
       }
+    } catch (err: any) {
+      console.error('Manual save failed:', err);
+      setSaveStatus('FAILED');
+      setSaveErrorMessage(err.message || 'Manual save failed');
+    }
+  };
+
+  // Open Version History Modal
+  const handleOpenVersionsModal = (projectId?: string) => {
+    setSelectedVersionProjectId(projectId || activeProject?.id);
+    setIsVersionsModalOpen(true);
+  };
+
+  // Rollback to specific version checkpoint
+  const handleRollbackVersion = async (versionId: string) => {
+    const projId = selectedVersionProjectId || activeProject?.id;
+    if (!projId) return;
+
+    try {
+      setSaveStatus('SAVING');
+      const restored = await ProjectPersistenceService.restoreProjectFromVersion(projId, versionId);
+      if (restored.success && restored.state) {
+        setDrawings(restored.state.drawings || []);
+        setElements(restored.state.elements || []);
+        setBoqItems(restored.state.boqItems || []);
+        setBbsRecords(restored.state.bbsRecords || []);
+        setOpenItems(restored.state.openItems || []);
+        setConflicts(restored.state.conflicts || []);
+        setRevisions(restored.state.revisions || []);
+        setActiveDrawingId(restored.state.drawings?.[0]?.id || null);
+        setSelectedElementId(restored.state.elements?.[0]?.id || null);
+
+        setSaveStatus('SAVED');
+        setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      }
+    } catch (err: any) {
+      console.error('Version rollback failed:', err);
+      setSaveStatus('FAILED');
+      setSaveErrorMessage(err.message || 'Rollback failed');
+    }
+  };
+
+  // Open Backup & Export/Import Modal
+  const handleOpenBackupModal = (projectId?: string) => {
+    if (projectId) {
+      const match = projects.find((p) => p.id === projectId);
+      if (match) setSelectedVersionProjectId(projectId);
+    } else {
+      setSelectedVersionProjectId(activeProject?.id);
+    }
+    setIsBackupModalOpen(true);
+  };
+
+  // Import Backup Package
+  const handleImportBackup = async (pkg: any) => {
+    try {
+      const pkgStr = typeof pkg === 'string' ? pkg : JSON.stringify(pkg);
+      const result = await ProjectPersistenceService.importProjectBackup(pkgStr);
+      if (result.success && result.project) {
+        setProjects((prev) => [...prev.filter((p) => p.id !== result.project!.id), result.project!]);
+        setActiveProject(result.project);
+        ProjectApiService.setActiveProjectId(result.project.id);
+        await rehydrateProjectState(result.project);
+        setActiveTab('dashboard');
+      }
+    } catch (err) {
+      console.error('Failed to import backup package:', err);
+    }
+  };
+
+  // Open Project Duplication Modal
+  const handleOpenDuplicateModal = (projectId: string) => {
+    const target = projects.find((p) => p.id === projectId) || activeProject;
+    if (target) {
+      setProjectToDuplicate(target);
+      setIsDuplicateModalOpen(true);
+    }
+  };
+
+  // Confirm Project Duplication
+  const handleConfirmDuplicate = async (newProjectConfig: ProjectRecord) => {
+    if (!projectToDuplicate) return;
+    try {
+      const cloned = await ProjectPersistenceService.duplicateProject(
+        projectToDuplicate.id,
+        newProjectConfig.project?.name || `${projectToDuplicate.project?.name || 'Project'} (Copy)`
+      );
+      if (cloned) {
+        setProjects((prev) => [...prev, cloned]);
+        setActiveProject(cloned);
+        ProjectApiService.setActiveProjectId(cloned.id);
+        await rehydrateProjectState(cloned);
+        setActiveTab('dashboard');
+      }
+    } catch (err) {
+      console.error('Failed to duplicate project:', err);
     }
   };
 
@@ -471,285 +840,345 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col font-sans antialiased selection:bg-indigo-600 selection:text-white">
-      {/* Top Navigation Bar */}
-      <TopBar
+      {/* Phase 17C: Global Navigation & Breadcrumb Header */}
+      <GlobalNavigationBar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        projectData={activeProject}
-        projectsList={projects}
+        breadcrumbs={getBreadcrumbs()}
+        canGoBack={navHistory.length > 1}
+        onGoBack={handleGoBack}
+        onGoHome={handleGoHome}
+        onToggleMobileSidebar={() => setIsSidebarOpen((prev) => !prev)}
+        activeProject={activeProject}
+        allProjects={projects}
         onSelectProject={handleSelectProject}
-        openItemsCount={openItems.filter((o) => o.status === 'open').length}
-        conflictsCount={conflicts.filter((c) => c.resolution === 'pending').length}
-        validationWarningsCount={validationIssues.length}
-        onOpenCreateProject={handleOpenCreateModal}
-        onOpenEditProject={() => handleOpenEditModal(activeProject || undefined)}
-        onOpenValidation={() => setIsValidationOpen(true)}
-        onExportExcel={handleExportExcel}
-        onTriggerAiScan={() => setIsAiScanOpen(true)}
-        onOpenValidationDashboard={() => setIsValidationDashboardOpen(true)}
-        onOpenReviewQueue={() => setIsReviewQueueOpen(true)}
-        onOpenE2ETests={() => setIsE2ETestOpen(true)}
-        onOpenErrorReport={() => setIsErrorReportOpen(true)}
+        onCreateProject={handleOpenCreateModal}
+        saveStatus={saveStatus}
+        lastSavedTime={lastSavedTime}
+        saveErrorMessage={saveErrorMessage}
+        onManualSave={handleManualSave}
+        onOpenVersions={() => handleOpenVersionsModal(activeProject?.id)}
+        onOpenBackup={() => handleOpenBackupModal(activeProject?.id)}
         onOpenExportCenter={() => setIsExportCenterOpen(true)}
-        onOpenExportTests={() => setIsExportTestOpen(true)}
+        onOpenValidation={() => setIsValidationOpen(true)}
+        validationIssueCount={validationIssues.length}
+        onOpenPhase17Intake={() => setIsPhase17ModalOpen(true)}
       />
 
-      {/* Main Tab Routing Area */}
-      <main className="flex-1 flex flex-col overflow-y-auto">
-        {/* If user is specifically on projects directory tab */}
-        {activeTab === 'projects-list' && (
-          <ProjectList
-            projects={projects}
-            activeProjectId={activeProject?.id || null}
-            onSelectProject={handleSelectProject}
-            onCreateNewProject={handleOpenCreateModal}
-            onEditProject={(proj) => handleOpenEditModal(proj)}
-            onToggleArchive={handleToggleArchive}
-            onDeleteProject={handleDeleteProject}
-            onLoadSampleProject={handleLoadTestData}
-          />
-        )}
+      {/* Main Body with Collapsible Global Sidebar */}
+      <div className="flex-1 flex overflow-hidden">
+        <GlobalSidebar
+          activeTab={activeTab}
+          onNavigate={handleNavigate}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+          isMobileOpen={isSidebarOpen}
+          onCloseMobile={() => setIsSidebarOpen(false)}
+          activeProject={activeProject}
+          counts={{
+            drawings: drawings.length,
+            openItems: openItems.filter((o) => o.status === 'open').length,
+            conflicts: conflicts.filter((c) => c.resolution === 'pending').length,
+            boqItems: boqItems.length,
+            validationIssues: validationIssues.length,
+            revisions: revisions.length,
+          }}
+        />
 
-        {/* If no project is active, display strict "No project created" empty state */}
-        {activeTab !== 'projects-list' && !activeProject && (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-3xl mx-auto text-center my-auto py-16">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shadow-xs mb-6">
-              <Building2 className="w-8 h-8" />
-            </div>
+        {/* Main Tab Routing Area */}
+        <main className="flex-1 flex flex-col overflow-y-auto min-w-0 bg-[#F8FAFC]">
+          {/* If user is specifically on projects directory tab */}
+          {activeTab === 'projects-list' && (
+            <ProjectList
+              projects={projects}
+              activeProjectId={activeProject?.id || null}
+              onSelectProject={handleSelectProject}
+              onCreateNewProject={handleOpenCreateModal}
+              onEditProject={(proj) => handleOpenEditModal(proj)}
+              onToggleArchive={handleToggleArchive}
+              onDeleteProject={handleDeleteProject}
+              onDuplicateProject={handleOpenDuplicateModal}
+              onExportProject={handleOpenBackupModal}
+              onImportProject={() => handleOpenBackupModal()}
+              onOpenVersions={handleOpenVersionsModal}
+              onLoadSampleProject={handleLoadTestData}
+            />
+          )}
 
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-              Initial Workspace State
-            </span>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-2">
-              No project created
-            </h2>
-            <p className="text-sm text-slate-500 max-w-md mx-auto mb-8 leading-relaxed">
-              No project information has been entered yet. Create a new project record to set up company details, client specifications, tender parameters, and engineering measurement settings.
-            </p>
+          {/* If no project is active, display strict "No project created" empty state */}
+          {activeTab !== 'projects-list' && !activeProject && (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-3xl mx-auto text-center my-auto py-16">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shadow-xs mb-6">
+                <Building2 className="w-8 h-8" />
+              </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <button
-                onClick={handleOpenCreateModal}
-                className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ CREATE NEW PROJECT</span>
-              </button>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Initial Workspace State
+              </span>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-2">
+                No project created
+              </h2>
+              <p className="text-sm text-slate-500 max-w-md mx-auto mb-8 leading-relaxed">
+                No project information has been entered yet. Create a new project record to set up company details, client specifications, tender parameters, and engineering measurement settings.
+              </p>
 
-              {projects.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center gap-3">
                 <button
-                  onClick={() => setActiveTab('projects-list')}
-                  className="px-5 py-3 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors shadow-2xs flex items-center gap-2"
+                  onClick={handleOpenCreateModal}
+                  className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2 cursor-pointer"
                 >
-                  <FolderKanban className="w-4 h-4 text-slate-500" />
-                  <span>Browse Projects Directory ({projects.length})</span>
+                  <Plus className="w-4 h-4" />
+                  <span>+ CREATE NEW PROJECT</span>
                 </button>
-              )}
 
-              <button
-                onClick={handleLoadTestData}
-                className="px-4 py-3 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold transition-colors"
-                title="Load sample template for testing"
-              >
-                Load Sample Template (Test)
-              </button>
+                {projects.length > 0 && (
+                  <button
+                    onClick={() => handleNavigate('projects-list')}
+                    className="px-5 py-3 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors shadow-2xs flex items-center gap-2 cursor-pointer"
+                  >
+                    <FolderKanban className="w-4 h-4 text-slate-500" />
+                    <span>Browse Projects Directory ({projects.length})</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={handleLoadTestData}
+                  className="px-4 py-3 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold transition-colors cursor-pointer"
+                  title="Load sample template for testing"
+                >
+                  Load Sample Template (Test)
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* If project is active and activeTab is 'dashboard' */}
-        {activeTab === 'dashboard' && activeProject && (
-          <ProjectDashboard
-            project={activeProject}
-            onEditProject={() => handleOpenEditModal(activeProject)}
-            onOpenProjectList={() => setActiveTab('projects-list')}
-            onCreateNewProject={handleOpenCreateModal}
-            onToggleArchive={() => handleToggleArchive(activeProject.id)}
-            onNavigateToDrawings={() => setActiveTab('drawings')}
-            onNavigateToIntelligence={() => setActiveTab('intelligence')}
-            onNavigateToTakeoff={() => setActiveTab('takeoff')}
-            onNavigateToMeasurementEngine={() => setActiveTab('measurement-engine')}
-            onNavigateToSteel={() => setActiveTab('steel')}
-            onNavigateToArchitectural={() => setActiveTab('architectural')}
-            onNavigateToMep={() => setActiveTab('mep')}
-            onNavigateToBoq={() => setActiveTab('boq')}
-            onNavigateToRateAnalysis={() => setActiveTab('rate-analysis')}
-            onNavigateToTender={() => setActiveTab('tender')}
-            onNavigateToBbs={() => setActiveTab('bbs')}
-            onNavigateToOpenItems={() => setActiveTab('open-items')}
-          />
-        )}
+          {/* If project is active and activeTab is 'dashboard' */}
+          {activeTab === 'dashboard' && activeProject && (
+            <ProjectDashboard
+              project={activeProject}
+              onEditProject={() => handleOpenEditModal(activeProject)}
+              onOpenProjectList={() => handleNavigate('projects-list')}
+              onCreateNewProject={handleOpenCreateModal}
+              onToggleArchive={() => handleToggleArchive(activeProject.id)}
+              onOpenVersions={() => handleOpenVersionsModal(activeProject.id)}
+              onOpenBackup={() => handleOpenBackupModal(activeProject.id)}
+              onManualSave={handleManualSave}
+              onNavigateToProjectInfo={() => handleOpenEditModal(activeProject)}
+              onNavigateToDrawings={() => handleNavigate('drawings')}
+              onNavigateToIntelligence={() => handleNavigate('intelligence')}
+              onNavigateToTakeoff={() => handleNavigate('takeoff')}
+              onNavigateToMeasurementEngine={() => handleNavigate('measurement-engine')}
+              onNavigateToWorkspace={() => handleNavigate('workspace')}
+              onNavigateToSteel={() => handleNavigate('steel')}
+              onNavigateToRoofing={() => handleNavigate('roofing')}
+              onNavigateToArchitectural={() => handleNavigate('architectural')}
+              onNavigateToMep={() => handleNavigate('mep')}
+              onNavigateToBoq={() => handleNavigate('boq')}
+              onNavigateToRateAnalysis={() => handleNavigate('rate-analysis')}
+              onNavigateToTender={() => handleNavigate('tender')}
+              onNavigateToBbs={() => handleNavigate('bbs')}
+              onNavigateToOpenItems={() => handleNavigate('open-items')}
+              onNavigateToConflicts={() => handleNavigate('conflicts')}
+              onNavigateToRevisions={() => handleNavigate('revisions')}
+              onNavigateToReports={() => handleNavigate('reports')}
+              onNavigateToExports={() => handleNavigate('exports')}
+              onNavigateToSettings={() => handleNavigate('settings')}
+              onOpenPhase16Integration={() => setIsPhase16ModalOpen(true)}
+            />
+          )}
 
-        {/* Drawings Register */}
-        {activeTab === 'drawings' && activeProject && (
-          <DrawingManager
-            activeProject={activeProject}
-            drawings={drawings}
-            activeDrawingId={activeDrawingId}
-            onSelectDrawing={(id) => {
-              setActiveDrawingId(id);
-              setActiveTab('workspace');
-            }}
-            onOpenAnalysisWorkspace={(docId) => {
-              setAnalysisTargetDocId(docId);
-              setActiveTab('intelligence');
-            }}
-            onAddDrawing={handleAddDrawing}
-            onDeleteDrawing={handleDeleteDrawing}
-            onOpenAiScan={() => setIsAiScanOpen(true)}
-          />
-        )}
+          {/* Drawings Register */}
+          {activeTab === 'drawings' && activeProject && (
+            <DrawingManager
+              activeProject={activeProject}
+              drawings={drawings}
+              activeDrawingId={activeDrawingId}
+              onSelectDrawing={(id) => {
+                setActiveDrawingId(id);
+                handleNavigate('workspace');
+              }}
+              onOpenAnalysisWorkspace={(docId) => {
+                setAnalysisTargetDocId(docId);
+                handleNavigate('intelligence');
+              }}
+              onAddDrawing={handleAddDrawing}
+              onDeleteDrawing={handleDeleteDrawing}
+              onOpenAiScan={() => setIsAiScanOpen(true)}
+              onOpenPhase17DrawingIntake={() => setIsPhase17ModalOpen(true)}
+            />
+          )}
 
-        {/* Phase 14A: Drawing Intelligence Core */}
-        {activeTab === 'intelligence' && activeProject && (
-          <DrawingIntelligenceWorkspace />
-        )}
+          {/* Phase 14A: Drawing Intelligence Core */}
+          {activeTab === 'intelligence' && activeProject && (
+            <DrawingIntelligenceWorkspace />
+          )}
 
-        {/* Phase 4: Engineering Quantity Takeoff & Calculation Engine */}
-        {activeTab === 'takeoff' && activeProject && (
-          <TakeoffWorkspace
-            project={activeProject}
-            documents={projectDocuments}
-            onOpenDrawingViewer={(docId) => {
-              setAnalysisTargetDocId(docId);
-              setActiveTab('intelligence');
-            }}
-            onNavigateToBoq={() => setActiveTab('boq')}
-          />
-        )}
+          {/* Phase 4: Engineering Quantity Takeoff & Calculation Engine */}
+          {activeTab === 'takeoff' && activeProject && (
+            <TakeoffWorkspace
+              project={activeProject}
+              documents={projectDocuments}
+              onOpenDrawingViewer={(docId) => {
+                setAnalysisTargetDocId(docId);
+                handleNavigate('intelligence');
+              }}
+              onNavigateToBoq={() => handleNavigate('boq')}
+            />
+          )}
 
-        {/* Phase 15A: Professional Measurement & Calculation Engine */}
-        {activeTab === 'measurement-engine' && activeProject && (
-          <MeasurementEngineWorkspace
-            onViewDrawing={(dwgNum) => {
-              const match = drawings.find((d) => d.drawingNumber === dwgNum || d.id === dwgNum);
-              if (match) {
-                setActiveDrawingId(match.id);
-                setActiveTab('workspace');
-              } else {
-                setActiveTab('intelligence');
-              }
-            }}
-          />
-        )}
-
-        {/* CAD & RCC Takeoff Canvas */}
-        {activeTab === 'workspace' && activeProject && (
-          <WorkspaceLayout
-            drawings={drawings}
-            activeDrawingId={activeDrawingId}
-            onSelectDrawing={setActiveDrawingId}
-            elements={elements}
-            selectedElementId={selectedElementId}
-            onSelectElement={setSelectedElementId}
-            onUpdateElement={handleUpdateElement}
-            onAddNewElement={handleAddNewElement}
-            boqItems={boqItems}
-            openItems={openItems}
-            projectData={activeProject}
-            onResolveOpenItem={handleResolveOpenItem}
-            onTriggerShowMeWhy={handleTriggerShowMeWhy}
-            onTriggerAiScan={() => setIsAiScanOpen(true)}
-          />
-        )}
-
-        {/* Phase 6: Steel Structure & Roofing Takeoff Engine */}
-        {activeTab === 'steel' && activeProject && (
-          <SteelRoofWorkspace
-            drawings={drawings}
-            onOpenDrawing={(dwgNum) => {
-              const match = drawings.find((d) => d.drawingNumber === dwgNum || d.id === dwgNum);
-              if (match) {
-                setActiveDrawingId(match.id);
-                setActiveTab('workspace');
-              }
-            }}
-            onExportExcel={handleExportExcel}
-          />
-        )}
-
-        {/* Phase 15C: Architectural, Masonry, DPC, Openings & Finishes Takeoff Engine */}
-        {activeTab === 'architectural' && activeProject && (
-          <div className="flex-1 overflow-hidden flex flex-col">
-            <MasonryFinishesEngineWorkspace />
-          </div>
-        )}
-
-        {/* Phase 8: Complete MEP Quantity Takeoff Engine */}
-        {activeTab === 'mep' && activeProject && (
-          <MEPTakeoffWorkspace onBackToDashboard={() => setActiveTab('dashboard')} />
-        )}
-
-        {/* Phase 15B: RCC + Reinforcement + Professional BBS Engine */}
-        {activeTab === 'bbs' && activeProject && (
-          <div className="p-6 max-w-7xl mx-auto w-full">
-            <RccBbsEngineWorkspace
-              onNavigateToDrawing={(dwgNum, page) => {
+          {/* Phase 15A: Professional Measurement & Calculation Engine */}
+          {activeTab === 'measurement-engine' && activeProject && (
+            <MeasurementEngineWorkspace
+              onViewDrawing={(dwgNum) => {
                 const match = drawings.find((d) => d.drawingNumber === dwgNum || d.id === dwgNum);
                 if (match) {
                   setActiveDrawingId(match.id);
-                  setActiveTab('workspace');
+                  handleNavigate('workspace');
                 } else {
-                  setActiveTab('intelligence');
+                  handleNavigate('intelligence');
                 }
               }}
             />
-          </div>
-        )}
+          )}
 
-        {/* BOQ Table / Phase 9: Unified BOQ Assembly Engine */}
-        {activeTab === 'boq' && activeProject && (
-          <UnifiedBoqWorkspace
-            onBackToDashboard={() => setActiveTab('dashboard')}
-          />
-        )}
+          {/* CAD & RCC Takeoff Canvas */}
+          {activeTab === 'workspace' && activeProject && (
+            <WorkspaceLayout
+              drawings={drawings}
+              activeDrawingId={activeDrawingId}
+              onSelectDrawing={setActiveDrawingId}
+              elements={elements}
+              selectedElementId={selectedElementId}
+              onSelectElement={setSelectedElementId}
+              onUpdateElement={handleUpdateElement}
+              onAddNewElement={handleAddNewElement}
+              boqItems={boqItems}
+              openItems={openItems}
+              projectData={activeProject}
+              onResolveOpenItem={handleResolveOpenItem}
+              onTriggerShowMeWhy={handleTriggerShowMeWhy}
+              onTriggerAiScan={() => setIsAiScanOpen(true)}
+            />
+          )}
 
-        {/* Phase 12: Rate Analysis & Tender Pricing Engine */}
-        {activeTab === 'rate-analysis' && activeProject && (
-          <RateAnalysisWorkspace
-            project={activeProject.project}
-            unifiedBoqItems={INITIAL_UNIFIED_BOQ_ITEMS}
-          />
-        )}
+          {/* Phase 6: Steel Structure & Roofing Takeoff Engine */}
+          {(activeTab === 'steel' || activeTab === 'roofing') && activeProject && (
+            <SteelRoofWorkspace
+              drawings={drawings}
+              onOpenDrawing={(dwgNum) => {
+                const match = drawings.find((d) => d.drawingNumber === dwgNum || d.id === dwgNum);
+                if (match) {
+                  setActiveDrawingId(match.id);
+                  handleNavigate('workspace');
+                } else {
+                  handleNavigate('intelligence');
+                }
+              }}
+              onExportExcel={handleExportExcel}
+            />
+          )}
 
-        {/* Phase 13: Professional Tender Management & Final Bid Submission Package */}
-        {activeTab === 'tender' && activeProject && (
-          <TenderWorkspace
-            project={activeProject}
-            unifiedBoqItems={INITIAL_UNIFIED_BOQ_ITEMS}
-            rateAnalyses={RateAnalysisEngine.initializeRateAnalyses(INITIAL_UNIFIED_BOQ_ITEMS)}
-            activeScenario={INITIAL_PRICING_SCENARIOS[0]}
-            onNavigateToBoq={() => setActiveTab('boq')}
-            onNavigateToRateAnalysis={() => setActiveTab('rate-analysis')}
-          />
-        )}
+          {/* Phase 15C: Architectural, Masonry, DPC, Openings & Finishes Takeoff Engine */}
+          {activeTab === 'architectural' && activeProject && (
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <MasonryFinishesEngineWorkspace />
+            </div>
+          )}
 
-        {/* Clarification Workspace */}
-        {activeTab === 'open-items' && activeProject && (
-          <ClarificationWorkspace
-            openItems={openItems}
-            conflicts={conflicts}
-            drawings={drawings}
-            onResolveOpenItem={handleResolveOpenItem}
-            onResolveConflict={handleResolveConflict}
-            onNavigateToDrawing={(dwgId) => {
-              setActiveDrawingId(dwgId);
-              setActiveTab('workspace');
-            }}
-          />
-        )}
+          {/* Phase 8: Complete MEP Quantity Takeoff Engine */}
+          {activeTab === 'mep' && activeProject && (
+            <MEPTakeoffWorkspace onBackToDashboard={handleGoHome} />
+          )}
 
-        {/* Revision Manager */}
-        {activeTab === 'revisions' && activeProject && (
-          <RevisionManager
-            revisions={revisions}
-            elements={elements}
-            boqItems={boqItems}
-            projectData={activeProject}
-            onApproveRevision={handleApproveRevision}
-          />
-        )}
-      </main>
+          {/* Phase 15B: RCC + Reinforcement + Professional BBS Engine */}
+          {activeTab === 'bbs' && activeProject && (
+            <div className="p-6 max-w-7xl mx-auto w-full">
+              <RccBbsEngineWorkspace
+                onNavigateToDrawing={(dwgNum, page) => {
+                  const match = drawings.find((d) => d.drawingNumber === dwgNum || d.id === dwgNum);
+                  if (match) {
+                    setActiveDrawingId(match.id);
+                    handleNavigate('workspace');
+                  } else {
+                    handleNavigate('intelligence');
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* BOQ Table / Phase 9: Unified BOQ Assembly Engine */}
+          {activeTab === 'boq' && activeProject && (
+            <UnifiedBoqWorkspace
+              onBackToDashboard={handleGoHome}
+            />
+          )}
+
+          {/* Phase 12: Rate Analysis & Tender Pricing Engine */}
+          {activeTab === 'rate-analysis' && activeProject && (
+            <RateAnalysisWorkspace
+              project={activeProject}
+              unifiedBoqItems={INITIAL_UNIFIED_BOQ_ITEMS}
+            />
+          )}
+
+          {/* Phase 13: Professional Tender Management & Final Bid Submission Package */}
+          {activeTab === 'tender' && activeProject && (
+            <TenderWorkspace
+              project={activeProject}
+              unifiedBoqItems={INITIAL_UNIFIED_BOQ_ITEMS}
+              rateAnalyses={RateAnalysisEngine.initializeRateAnalyses(INITIAL_UNIFIED_BOQ_ITEMS)}
+              activeScenario={INITIAL_PRICING_SCENARIOS[0]}
+              onNavigateToBoq={() => handleNavigate('boq')}
+              onNavigateToRateAnalysis={() => handleNavigate('rate-analysis')}
+            />
+          )}
+
+          {/* Clarification Workspace & Conflicts */}
+          {(activeTab === 'open-items' || activeTab === 'conflicts') && activeProject && (
+            <ClarificationWorkspace
+              openItems={openItems}
+              conflicts={conflicts}
+              drawings={drawings}
+              onResolveOpenItem={handleResolveOpenItem}
+              onResolveConflict={handleResolveConflict}
+              onNavigateToDrawing={(dwgId) => {
+                setActiveDrawingId(dwgId);
+                handleNavigate('workspace');
+              }}
+            />
+          )}
+
+          {/* Revision Manager */}
+          {activeTab === 'revisions' && activeProject && (
+            <RevisionManager
+              revisions={revisions}
+              elements={elements}
+              boqItems={boqItems}
+              projectData={activeProject}
+              onApproveRevision={handleApproveRevision}
+            />
+          )}
+
+          {/* Reports Center & Exports Center */}
+          {(activeTab === 'reports' || activeTab === 'exports') && activeProject && (
+            <ReportsWorkspace
+              project={activeProject}
+              onNavigateToSection={handleNavigate}
+            />
+          )}
+
+          {/* Settings Workspace */}
+          {activeTab === 'settings' && activeProject && (
+            <SettingsWorkspace
+              project={activeProject}
+              onSaveProject={(updated) => {
+                setActiveProject(updated);
+                setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+              }}
+            />
+          )}
+        </main>
+      </div>
 
       {/* Project Setup & Edit Modal */}
       <ProjectSetupModal
@@ -860,6 +1289,94 @@ export function App() {
         <ExportTestSuiteModal
           isOpen={isExportTestOpen}
           onClose={() => setIsExportTestOpen(false)}
+        />
+      )}
+
+      {/* Phase 16: Master Full System Integration & E2E Verification Center Modal */}
+      {isPhase16ModalOpen && (
+        <Phase16MasterIntegrationModal
+          isOpen={isPhase16ModalOpen}
+          onClose={() => setIsPhase16ModalOpen(false)}
+          projectData={activeProject}
+          boqItems={INITIAL_UNIFIED_BOQ_ITEMS}
+          onNavigateToTab={(tabKey) => {
+            if (tabKey) {
+              setActiveTab(tabKey as ActiveTab);
+              setIsPhase16ModalOpen(false);
+            }
+          }}
+          onOpenDrawingPreview={(dwgNum) => {
+            setActiveTab('intelligence');
+            setIsPhase16ModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Phase 17A: Real Drawing Intake + Processing Pipeline Center */}
+      {isPhase17ModalOpen && (
+        <Phase17DrawingIntakeCenter
+          isOpen={isPhase17ModalOpen}
+          onClose={() => setIsPhase17ModalOpen(false)}
+          activeProject={activeProject}
+          onStartTakeoff={(processedDrawings) => {
+            setActiveTab('measurement-engine');
+            setIsPhase17ModalOpen(false);
+          }}
+          onNavigateToTab={(tabKey) => {
+            if (tabKey) {
+              setActiveTab(tabKey as ActiveTab);
+              setIsPhase17ModalOpen(false);
+            }
+          }}
+        />
+      )}
+      {/* Phase 17C: Unsaved Changes Navigation Guard Modal */}
+      <UnsavedChangesModal
+        isOpen={isUnsavedModalOpen}
+        onConfirm={handleConfirmLeave}
+        onCancel={handleCancelLeave}
+        targetSectionName={pendingNavTab ? pendingNavTab.toUpperCase() : undefined}
+      />
+
+      {/* Persistence: Project Version History Checkpoints Modal */}
+      {isVersionsModalOpen && (
+        <ProjectVersionModal
+          isOpen={isVersionsModalOpen}
+          onClose={() => setIsVersionsModalOpen(false)}
+          projectId={selectedVersionProjectId || activeProject?.id || ''}
+          projectName={
+            projects.find((p) => p.id === (selectedVersionProjectId || activeProject?.id))?.project?.name ||
+            activeProject?.project?.name ||
+            'Project'
+          }
+          onRollbackSuccess={handleRollbackVersion}
+        />
+      )}
+
+      {/* Persistence: Project Full Backup Export / Import Modal */}
+      {isBackupModalOpen && (
+        <ProjectBackupModal
+          isOpen={isBackupModalOpen}
+          onClose={() => setIsBackupModalOpen(false)}
+          projectId={selectedVersionProjectId || activeProject?.id}
+          projectName={
+            projects.find((p) => p.id === (selectedVersionProjectId || activeProject?.id))?.project?.name ||
+            activeProject?.project?.name
+          }
+          onImportSuccess={handleImportBackup}
+        />
+      )}
+
+      {/* Persistence: Project Duplication / Cloning Modal */}
+      {isDuplicateModalOpen && projectToDuplicate && (
+        <ProjectDuplicateModal
+          isOpen={isDuplicateModalOpen}
+          onClose={() => {
+            setIsDuplicateModalOpen(false);
+            setProjectToDuplicate(null);
+          }}
+          sourceProject={projectToDuplicate}
+          onDuplicateConfirm={handleConfirmDuplicate}
         />
       )}
     </div>

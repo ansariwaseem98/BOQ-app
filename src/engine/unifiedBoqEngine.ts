@@ -322,7 +322,7 @@ export class UnifiedBoqEngine {
       clientName: params.clientName,
       consultantName: params.consultantName,
       generatedDate: new Date().toISOString().slice(0, 10),
-      currency: params.currency || 'USD',
+      currency: params.currency || 'AED',
       boqRevision: params.boqRevision,
       totalItemsCount: params.items.length,
       disciplinesSummary,

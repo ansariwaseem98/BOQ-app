@@ -383,10 +383,10 @@ export class TakeoffStorageService {
    * Bootstraps / seeds full Takeoff Items from project extracted elements, documents and standard building sequence
    */
   public static bootstrapInitialTakeoff(
-    project: ProjectRecord,
+    project?: ProjectRecord | null,
     documents: ProjectDocument[] = []
   ): TakeoffItemRecord[] {
-    const projectId = project.id;
+    const projectId = project?.id || 'PROJ-TEST-001';
     const existing = this.getTakeoffItems(projectId);
     if (existing.length > 0) return existing;
 

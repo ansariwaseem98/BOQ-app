@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Save, Edit3, AlertCircle, Calculator, CheckCircle2 } from 'lucide-react';
-import { SteelMemberRegisterItem, StructuralSteelGrade, SteelCategory } from '../types';
+import { X, Save, Edit3, Calculator } from 'lucide-react';
+import { SteelMemberRegisterItem, StructuralSteelGrade } from '../types';
 import { calculateSteelMemberItem } from '../engine/steelRoofEngine';
 import { getAllAvailableSections, lookupSteelSection } from '../engine/steelSectionDatabase';
 
@@ -11,14 +11,11 @@ interface SteelEditModalProps {
   onSave: (updated: SteelMemberRegisterItem) => void;
 }
 
-export const SteelEditModal: React.FC<SteelEditModalProps> = ({
-  isOpen,
-  onClose,
-  member,
-  onSave,
-}) => {
-  if (!isOpen || !member) return null;
-
+const SteelEditModalContent: React.FC<{
+  member: SteelMemberRegisterItem;
+  onClose: () => void;
+  onSave: (updated: SteelMemberRegisterItem) => void;
+}> = ({ member, onClose, onSave }) => {
   const [mark, setMark] = useState(member.mark);
   const [section, setSection] = useState(member.section);
   const [lengthM, setLengthM] = useState<number | ''>(member.lengthM ?? '');
@@ -55,7 +52,7 @@ export const SteelEditModal: React.FC<SteelEditModalProps> = ({
     e.preventDefault();
 
     const updatedItem: SteelMemberRegisterItem = {
-      ...preview.item,
+      ...preview,
       verificationStatus: 'USER CORRECTED',
       userCorrection: {
         originalAiNotation: `${member.section} (Len: ${member.lengthM}m, Qty: ${member.quantity})`,
@@ -65,16 +62,16 @@ export const SteelEditModal: React.FC<SteelEditModalProps> = ({
         reason: editReason,
       },
       auditTrail: [
-        ...member.auditTrail,
+        ...(member.auditTrail || []),
         {
           id: `AUD-EDIT-${Date.now()}`,
           timestamp: new Date().toISOString(),
           user: 'Engineer Verification',
           action: 'INPUT_MODIFIED',
           previousValue: member.totalWeightKg,
-          newValue: preview.item.totalWeightKg,
+          newValue: preview.totalWeightKg,
           previousFormula: member.formulaWithValues,
-          newFormula: preview.item.formulaWithValues,
+          newFormula: preview.formulaWithValues,
           reason: editReason,
         },
       ],
@@ -247,11 +244,11 @@ export const SteelEditModal: React.FC<SteelEditModalProps> = ({
                 Live Recalculation Output:
               </span>
               <span className="text-xs font-mono font-bold text-indigo-700">
-                {preview.item.totalWeightKg.toFixed(2)} kg ({preview.item.totalWeightTonnes.toFixed(3)} Tonnes)
+                {(preview.totalWeightKg ?? 0).toFixed(2)} kg ({(preview.totalWeightTonnes ?? 0).toFixed(3)} Tonnes)
               </span>
             </div>
             <div className="text-[11px] font-mono text-indigo-950 bg-white p-2 rounded border border-indigo-100">
-              {preview.item.formulaWithValues}
+              {preview.formulaWithValues}
             </div>
           </div>
 
@@ -274,5 +271,23 @@ export const SteelEditModal: React.FC<SteelEditModalProps> = ({
         </form>
       </div>
     </div>
+  );
+};
+
+export const SteelEditModal: React.FC<SteelEditModalProps> = ({
+  isOpen,
+  onClose,
+  member,
+  onSave,
+}) => {
+  if (!isOpen || !member) return null;
+
+  return (
+    <SteelEditModalContent
+      key={member.id}
+      member={member}
+      onClose={onClose}
+      onSave={onSave}
+    />
   );
 };

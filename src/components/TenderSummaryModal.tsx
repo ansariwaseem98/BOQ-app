@@ -111,8 +111,8 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
               Final Commercial Tender Bid Total
             </span>
             <div className="text-3xl font-black font-mono tracking-tight text-emerald-400">
-              ${summaryReport.tenderGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              <span className="text-xs font-normal text-slate-400 ml-2 uppercase">USD Total Sum</span>
+              AED {summaryReport.tenderGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span className="text-xs font-normal text-slate-400 ml-2 uppercase">AED Total Sum</span>
             </div>
             <p className="text-xs text-slate-300 italic mt-1 max-w-2xl font-serif">
               "{summaryReport.tenderTotalWords}"
@@ -122,17 +122,17 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
           <div className="flex items-center gap-4 bg-slate-800/80 p-3 rounded-xl border border-slate-700 text-xs">
             <div>
               <span className="text-slate-400 block text-[10px]">Direct Cost:</span>
-              <strong className="font-mono text-white">${costElements.directCostTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              <strong className="font-mono text-white">AED {costElements.directCostTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
             <div className="h-8 w-px bg-slate-700" />
             <div>
               <span className="text-slate-400 block text-[10px]">Overhead ({costElements.overheadPercent.toFixed(1)}%):</span>
-              <strong className="font-mono text-white">${costElements.overheadTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              <strong className="font-mono text-white">AED {costElements.overheadTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
             <div className="h-8 w-px bg-slate-700" />
             <div>
               <span className="text-slate-400 block text-[10px]">Profit ({costElements.profitPercent.toFixed(1)}%):</span>
-              <strong className="font-mono text-emerald-300">${costElements.profitTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              <strong className="font-mono text-emerald-300">AED {costElements.profitTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
           </div>
         </div>
@@ -161,7 +161,7 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
               activeSection === 'BUILDING' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            By Building & Area ($/m²)
+            By Building & Area (AED/m²)
           </button>
           <button
             onClick={() => setActiveSection('LEVELS')}
@@ -193,7 +193,7 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
                     <tr>
                       <th className="py-3 px-5">Cost Element</th>
                       <th className="py-3 px-5">Classification</th>
-                      <th className="py-3 px-5 text-right">Total Amount ($)</th>
+                      <th className="py-3 px-5 text-right">Total Amount (AED)</th>
                       <th className="py-3 px-5 text-right">% of Tender Total</th>
                     </tr>
                   </thead>
@@ -201,63 +201,63 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
                     <tr>
                       <td className="py-3 px-5 font-bold text-slate-900">1. Material Supply Cost</td>
                       <td className="py-3 px-5 text-slate-500">Direct Cost</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-900">${costElements.materialTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-900">AED {costElements.materialTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-indigo-600 font-bold">{costElements.materialPercent}%</td>
                     </tr>
                     <tr>
                       <td className="py-3 px-5 font-bold text-slate-900">2. Labour Trades & Productivity</td>
                       <td className="py-3 px-5 text-slate-500">Direct Cost</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-900">${costElements.labourTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-900">AED {costElements.labourTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-indigo-600 font-bold">{costElements.labourPercent}%</td>
                     </tr>
                     <tr>
                       <td className="py-3 px-5 font-bold text-slate-900">3. Plant & Equipment Machinery</td>
                       <td className="py-3 px-5 text-slate-500">Direct Cost</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-900">${costElements.equipmentTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-900">AED {costElements.equipmentTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-indigo-600 font-bold">{costElements.equipmentPercent}%</td>
                     </tr>
                     <tr>
                       <td className="py-3 px-5 font-bold text-slate-900">4. Specialist Subcontract Packages</td>
                       <td className="py-3 px-5 text-slate-500">Direct Cost</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-900">${costElements.subcontractTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-900">AED {costElements.subcontractTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-indigo-600 font-bold">{costElements.subcontractPercent}%</td>
                     </tr>
                     <tr>
                       <td className="py-3 px-5 font-bold text-slate-900">5. Haulage & Site Logistics</td>
                       <td className="py-3 px-5 text-slate-500">Direct Cost</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-900">${costElements.transportTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-900">AED {costElements.transportTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-indigo-600 font-bold">{costElements.transportPercent}%</td>
                     </tr>
                     <tr>
                       <td className="py-3 px-5 font-bold text-slate-900">6. Testing, Formwork & Other Directs</td>
                       <td className="py-3 px-5 text-slate-500">Direct Cost</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-900">${costElements.otherTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-900">AED {costElements.otherTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-indigo-600 font-bold">{costElements.otherPercent}%</td>
                     </tr>
 
                     <tr className="bg-slate-50 font-bold border-t border-slate-200">
                       <td className="py-3 px-5 text-slate-900 uppercase">SUBTOTAL: TOTAL DIRECT COST</td>
                       <td className="py-3 px-5 text-slate-700">Direct Sum</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-900">${costElements.directCostTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-900">AED {costElements.directCostTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-slate-900">100.0% (Base)</td>
                     </tr>
 
                     <tr>
                       <td className="py-3 px-5 font-bold text-slate-900">7. Site & Head Office Overhead</td>
                       <td className="py-3 px-5 text-slate-500">Indirect Markup ({costElements.overheadPercent.toFixed(1)}%)</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-900">${costElements.overheadTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-900">AED {costElements.overheadTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-amber-600 font-bold">+{((costElements.overheadTotal / summaryReport.tenderGrandTotal) * 100).toFixed(1)}%</td>
                     </tr>
                     <tr>
                       <td className="py-3 px-5 font-bold text-slate-900">8. Commercial Profit Margin</td>
                       <td className="py-3 px-5 text-slate-500">Commercial Margin ({costElements.profitPercent.toFixed(1)}%)</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-900">${costElements.profitTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-900">AED {costElements.profitTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-emerald-600 font-bold">+{((costElements.profitTotal / summaryReport.tenderGrandTotal) * 100).toFixed(1)}%</td>
                     </tr>
                     <tr>
                       <td className="py-3 px-5 font-bold text-slate-900">9. Configured Statutory Tax / VAT</td>
                       <td className="py-3 px-5 text-slate-500">Statutory Duty ({costElements.taxPercent}%)</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-900">${costElements.taxTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-900">AED {costElements.taxTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-slate-600">+{((costElements.taxTotal / summaryReport.tenderGrandTotal) * 100).toFixed(1)}%</td>
                     </tr>
 
@@ -265,7 +265,7 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
                       <td className="py-4 px-5 uppercase">TENDER GRAND TOTAL</td>
                       <td className="py-4 px-5 text-slate-300 font-normal">All Directs + Indirects + Tax</td>
                       <td className="py-4 px-5 text-right font-mono text-emerald-400 text-base">
-                        ${summaryReport.tenderGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        AED {summaryReport.tenderGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="py-4 px-5 text-right font-mono text-white">100.0%</td>
                     </tr>
@@ -282,10 +282,10 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
                   <tr>
                     <th className="py-3 px-5">Engineering Discipline</th>
                     <th className="py-3 px-5">Priced Items</th>
-                    <th className="py-3 px-5 text-right">Direct Cost ($)</th>
-                    <th className="py-3 px-5 text-right">Overhead ($)</th>
-                    <th className="py-3 px-5 text-right">Profit ($)</th>
-                    <th className="py-3 px-5 text-right">Tender Amount ($)</th>
+                    <th className="py-3 px-5 text-right">Direct Cost (AED)</th>
+                    <th className="py-3 px-5 text-right">Overhead (AED)</th>
+                    <th className="py-3 px-5 text-right">Profit (AED)</th>
+                    <th className="py-3 px-5 text-right">Tender Amount (AED)</th>
                     <th className="py-3 px-5 text-right">% of Tender</th>
                   </tr>
                 </thead>
@@ -294,10 +294,10 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
                     <tr key={d.discipline} className="hover:bg-slate-50/80">
                       <td className="py-3 px-5 font-bold text-slate-900">{d.discipline}</td>
                       <td className="py-3 px-5 text-slate-600 font-mono">{d.itemCount} items</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-800">${d.directCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-600">${d.overheadAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-600">${d.profitAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="py-3 px-5 text-right font-mono text-indigo-700 font-black">${d.tenderAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-800">AED {d.directCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-600">AED {d.overheadAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-600">AED {d.profitAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-indigo-700 font-black">AED {d.tenderAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-slate-700 font-bold">{d.percentageOfTender}%</td>
                     </tr>
                   ))}
@@ -315,9 +315,9 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
                       <th className="py-3 px-5">Building / Facility</th>
                       <th className="py-3 px-5">Priced Scope</th>
                       <th className="py-3 px-5">Gross Floor Area (GFA)</th>
-                      <th className="py-3 px-5 text-right">Direct Cost ($)</th>
-                      <th className="py-3 px-5 text-right">Tender Amount ($)</th>
-                      <th className="py-3 px-5 text-right">Cost / m² ($/m²)</th>
+                      <th className="py-3 px-5 text-right">Direct Cost (AED)</th>
+                      <th className="py-3 px-5 text-right">Tender Amount (AED)</th>
+                      <th className="py-3 px-5 text-right">Cost / m² (AED/m²)</th>
                       <th className="py-3 px-5 text-right">% of Total</th>
                     </tr>
                   </thead>
@@ -329,10 +329,10 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
                         <td className="py-3 px-5 font-mono text-slate-700">
                           {b.isGfaVerified ? `${b.grossFloorAreaM2?.toLocaleString()} m² (Verified)` : 'Unverified Area'}
                         </td>
-                        <td className="py-3 px-5 text-right font-mono text-slate-800">${b.directCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        <td className="py-3 px-5 text-right font-mono text-indigo-700 font-black">${b.tenderAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="py-3 px-5 text-right font-mono text-slate-800">AED {b.directCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="py-3 px-5 text-right font-mono text-indigo-700 font-black">AED {b.tenderAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td className="py-3 px-5 text-right font-mono text-emerald-700 font-black">
-                          {b.costPerM2 ? `$${b.costPerM2.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / m²` : 'N/A'}
+                          {b.costPerM2 ? `AED ${b.costPerM2.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / m²` : 'N/A'}
                         </td>
                         <td className="py-3 px-5 text-right font-mono text-slate-700 font-bold">{b.percentageOfTotal}%</td>
                       </tr>
@@ -349,8 +349,8 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
                 <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
                   <tr>
                     <th className="py-3 px-5">Floor Level / Stage</th>
-                    <th className="py-3 px-5 text-right">Direct Cost ($)</th>
-                    <th className="py-3 px-5 text-right">Tender Amount ($)</th>
+                    <th className="py-3 px-5 text-right">Direct Cost (AED)</th>
+                    <th className="py-3 px-5 text-right">Tender Amount (AED)</th>
                     <th className="py-3 px-5 text-right">% of Total</th>
                   </tr>
                 </thead>
@@ -358,8 +358,8 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
                   {summaryReport.levelBreakdown.map((l) => (
                     <tr key={l.levelName} className="hover:bg-slate-50/80">
                       <td className="py-3 px-5 font-bold text-slate-900">{l.levelName}</td>
-                      <td className="py-3 px-5 text-right font-mono text-slate-800">${l.directCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="py-3 px-5 text-right font-mono text-indigo-700 font-black">${l.tenderAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-slate-800">AED {l.directCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-5 text-right font-mono text-indigo-700 font-black">AED {l.tenderAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3 px-5 text-right font-mono text-slate-700 font-bold">{l.percentageOfTotal}%</td>
                     </tr>
                   ))}
@@ -391,7 +391,7 @@ export const TenderSummaryModal: React.FC<TenderSummaryModalProps> = ({
 
                     <div className="text-right">
                       <div className="text-base font-black font-mono text-slate-900">
-                        ${rev.tenderGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        AED {rev.tenderGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                       <span className="text-[10px] text-slate-500">{rev.itemRatesSummary.length} items captured</span>
                     </div>
